@@ -1,7 +1,7 @@
 mod note;
 mod window_manager;
 
-use crate::note::{load_notes, save_notes, upsert_note, remove_note, Note, Rect, NotesState};
+use crate::note::{load_notes, save_notes, upsert_note, remove_note, Note, Rect, NotesState, Mode, Item};
 use crate::window_manager::{AppState, build_note_window, create_note, restore_all_windows, new_id};
 
 use std::sync::Mutex;
@@ -110,7 +110,7 @@ fn cmd_set_window_rect(
     Ok(true)
 }
 
-/// 保存当前窗口的便签内容 + color + 位置
+/// 保存当前窗口的便签内容（支持 text / items 两种模式）
 #[tauri::command]
 fn cmd_save_note(
     window: tauri::Window,
@@ -118,10 +118,27 @@ fn cmd_save_note(
     content: String,
     plain_text: String,
     color: String,
+    mode: Option<String>,               // "text" | "items"
+    items_json: Option<String>,         // JSON: [{id, text, done}]
 ) -> Result<bool, String> {
     let id = window.label().trim_start_matches("note-").to_string();
     let pos = window.outer_position().map(|p| (p.x, p.y)).unwrap_or((120, 120));
     let size = window.outer_size().map(|s| (s.width, s.height)).unwrap_or((280, 280));
+
+    // 解析 mode
+    let parsed_mode = match mode.as_deref() {
+        Some("items") => Mode::Items,
+        _ => Mode::Text,
+    };
+
+    // 解析 items
+    let parsed_items: Vec<Item> = if parsed_mode == Mode::Items {
+        items_json
+            .and_then(|j| serde_json::from_str::<Vec<Item>>(&j).ok())
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
 
     {
         let mut guard = state.notes.lock().unwrap();
@@ -129,15 +146,18 @@ fn cmd_save_note(
             n.content = content;
             n.plain_text = plain_text;
             n.color = color;
+            n.mode = parsed_mode.clone();
+            n.items = parsed_items.clone();
             n.rect = Rect { x: pos.0, y: pos.1, width: size.0 as i32, height: size.1 as i32 };
             n.updated_at = chrono::Utc::now().timestamp_millis();
         } else {
-            // fallback：若找不到，补一条
             guard.notes.push(Note {
                 id: id.clone(),
                 color: color.clone(),
+                mode: parsed_mode.clone(),
                 content: content.clone(),
                 plain_text: plain_text.clone(),
+                items: parsed_items.clone(),
                 pinned: false,
                 click_through: false,
                 rect: Rect { x: pos.0, y: pos.1, width: size.0 as i32, height: size.1 as i32 },
@@ -149,6 +169,26 @@ fn cmd_save_note(
         let _ = save_notes(&guard);
     }
     Ok(true)
+}
+
+/// 前端加载自己这张便利贴（返回 mode / content / items）
+#[tauri::command]
+fn cmd_get_my_note(
+    window: tauri::Window,
+    state: tauri::State<AppState>,
+) -> Result<(String, String, String), String> {
+    let id = window.label().trim_start_matches("note-").to_string();
+    let guard = state.notes.lock().unwrap();
+    if let Some(n) = guard.notes.iter().find(|n| n.id == id) {
+        let mode = match n.mode {
+            Mode::Items => "items".to_string(),
+            _ => "text".to_string(),
+        };
+        let items = serde_json::to_string(&n.items).unwrap_or_else(|_| "[]".into());
+        Ok((mode, n.content.clone(), items))
+    } else {
+        Ok(("text".to_string(), String::new(), "[]".to_string()))
+    }
 }
 
 /// 加载所有便签（仅用于调试/搜索场景）
@@ -215,6 +255,7 @@ fn main() {
             cmd_get_window_rect,
             cmd_set_window_rect,
             cmd_save_note,
+            cmd_get_my_note,
             cmd_load_all_notes,
             cmd_show_all,
             cmd_hide_all,

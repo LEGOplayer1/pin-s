@@ -10,16 +10,52 @@ pub struct Rect {
     pub height: i32,
 }
 
+/// 单条条目（条目模式下的一行）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Item {
+    pub id: String,
+    pub text: String,
+    pub done: bool,
+}
+
+impl Item {
+    pub fn new(id: String, text: String) -> Self {
+        Self { id, text, done: false }
+    }
+}
+
+/// 便利贴的内容模式
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    Text,
+    Items,
+}
+
+impl Default for Mode {
+    fn default() -> Self { Mode::Text }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Note {
     pub id: String,
     pub color: String,      // cream | blue | pink | green | lavender | yellow
-    pub content: String,    // HTML
-    pub plain_text: String, // 纯文本（用于搜索）
+
+    #[serde(default)]
+    pub mode: Mode,
+    #[serde(default)]
+    pub content: String,    // HTML（Text 模式）
+    #[serde(default)]
+    pub plain_text: String, // 纯文本
+    #[serde(default)]
+    pub items: Vec<Item>,   // 条目模式下的条目列表
+
+    #[serde(default)]
     pub pinned: bool,
+    #[serde(default)]
     pub click_through: bool,
     pub rect: Rect,
-    pub reminder: Option<String>, // ISO string
+    pub reminder: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -30,8 +66,10 @@ impl Note {
         Self {
             id,
             color: color.to_string(),
+            mode: Mode::Text,
             content: String::new(),
             plain_text: String::new(),
+            items: Vec::new(),
             pinned: false,
             click_through: false,
             rect: Rect { x, y, width: w, height: h },
@@ -52,7 +90,7 @@ pub struct NotesState {
     pub notes: Vec<Note>,
 }
 
-/// 返回 notes.json 所在路径：{appDataDir}/zhijian/notes.json
+/// 返回 notes.json 路径：{appDataDir}/zhijian/notes.json
 pub fn notes_file_path() -> PathBuf {
     let mut path = dirs::data_dir().unwrap_or_else(|| PathBuf::from("."));
     path.push("zhijian");
