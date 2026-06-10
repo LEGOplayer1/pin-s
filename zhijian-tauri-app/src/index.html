@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纸间</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Playfair+Display:wght@400;500;600&family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --fg: #4A433A;
+  --fg-light: #8A8279;
+  --fg-muted: #B0A899;
+
+  --note-cream:    #FAF6EE;
+  --note-blue:     #E8EDF2;
+  --note-pink:     #F2E8E8;
+  --note-green:    #E8F0E8;
+  --note-lavender: #ECE8F0;
+  --note-yellow:   #F5F0DC;
+
+  --note-cream-darker:    #E8DECB;
+  --note-blue-darker:     #D3DCE5;
+  --note-pink-darker:     #E0CDCD;
+  --note-green-darker:    #CFDBCF;
+  --note-lavender-darker: #D9CFE0;
+  --note-yellow-darker:   #E8DCB0;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: 'LXGW WenKai', '霞鹜文楷', serif;
+  color: var(--fg);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ========== 便利贴主体 ========== */
+.note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 22px rgba(74, 67, 58, 0.22), 0 2px 6px rgba(74, 67, 58, 0.08);
+  transition: background-color 0.25s;
+}
+
+.note[data-color="cream"]    { background: var(--note-cream); }
+.note[data-color="blue"]     { background: var(--note-blue); }
+.note[data-color="pink"]     { background: var(--note-pink); }
+.note[data-color="green"]    { background: var(--note-green); }
+.note[data-color="lavender"] { background: var(--note-lavender); }
+.note[data-color="yellow"]   { background: var(--note-yellow); }
+
+/* 细微纸张纹理 */
+.note::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.0' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: 6px;
+  z-index: 0;
+}
+
+/* ========== 标题栏（Tauri 拖拽区） ========== */
+.note-header {
+  height: 26px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+  user-select: none;
+}
+
+.note[data-color="cream"]    .note-header { background: var(--note-cream-darker); }
+.note[data-color="blue"]     .note-header { background: var(--note-blue-darker); }
+.note[data-color="pink"]     .note-header { background: var(--note-pink-darker); }
+.note[data-color="green"]    .note-header { background: var(--note-green-darker); }
+.note[data-color="lavender"] .note-header { background: var(--note-lavender-darker); }
+.note[data-color="yellow"]   .note-header { background: var(--note-yellow-darker); }
+
+.color-dots {
+  display: flex; gap: 4px;
+}
+
+.color-dot {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1.5px solid rgba(74, 67, 58, 0.18);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.color-dot:hover { transform: scale(1.2); }
+.color-dot.active { border-color: rgba(74, 67, 58, 0.6); }
+
+.window-actions {
+  display: flex; gap: 2px;
+}
+
+.btn {
+  width: 22px; height: 22px;
+  border: none; border-radius: 3px;
+  background: transparent;
+  color: var(--fg-light);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover {
+  background: rgba(74, 67, 58, 0.12);
+  color: var(--fg);
+}
+.btn.close:hover {
+  background: rgba(200, 60, 60, 0.75);
+  color: #fff;
+}
+.btn.pinned { color: #C97A3A; }
+
+/* ========== 内容区 ========== */
+.note-body {
+  flex: 1;
+  padding: 10px 14px;
+  position: relative;
+  z-index: 1;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-y: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.note-body:empty::before {
+  content: '写点什么...';
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.note-body h1 { font-family: 'Playfair Display', serif; font-size: 20px; margin: 6px 0 2px; font-weight: 600; }
+.note-body h2 { font-family: 'Playfair Display', serif; font-size: 17px; margin: 6px 0 2px; font-weight: 500; }
+.note-body h3 { font-size: 15px; margin: 4px 0 2px; font-weight: 600; }
+.note-body strong { font-weight: 700; }
+.note-body em { font-style: italic; }
+.note-body code {
+  background: rgba(74, 67, 58, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: 'Crimson Pro', monospace;
+}
+.note-body blockquote {
+  border-left: 3px solid var(--fg-muted);
+  padding-left: 10px;
+  margin: 6px 0;
+  color: var(--fg-light);
+  font-style: italic;
+}
+.note-body ul, .note-body ol { padding-left: 18px; margin: 4px 0; }
+.note-body li { margin: 2px 0; }
+
+.note-body::-webkit-scrollbar { width: 4px; }
+.note-body::-webkit-scrollbar-track { background: transparent; }
+.note-body::-webkit-scrollbar-thumb { background: rgba(74, 67, 58, 0.18); border-radius: 2px; }
+
+/* ========== 底部状态栏 ========== */
+.note-footer {
+  height: 16px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--fg-muted);
+  position: relative;
+  z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="note" id="note" data-color="cream">
+  <div class="note-header" data-tauri-drag-region>
+    <div class="color-dots" id="colorDots">
+      <span class="color-dot active" data-color="cream"    style="background:#FAF6EE"></span>
+      <span class="color-dot"        data-color="blue"     style="background:#E8EDF2"></span>
+      <span class="color-dot"        data-color="pink"     style="background:#F2E8E8"></span>
+      <span class="color-dot"        data-color="green"    style="background:#E8F0E8"></span>
+      <span class="color-dot"        data-color="lavender" style="background:#ECE8F0"></span>
+      <span class="color-dot"        data-color="yellow"   style="background:#F5F0DC"></span>
+    </div>
+    <div class="window-actions">
+      <button class="btn" id="btnPin" title="置顶">📌</button>
+      <button class="btn" id="btnNew" title="新建">+</button>
+      <button class="btn close" id="btnClose" title="关闭">✕</button>
+    </div>
+  </div>
+
+  <div class="note-body" contenteditable="true" id="editor" spellcheck="false"></div>
+
+  <div class="note-footer" data-tauri-drag-region>
+    <span>纸间</span>
+    <span id="timeStamp"></span>
+  </div>
+</div>
+
+<!-- Tauri API（由 Tauri 在运行时注入 window.__TAURI__） -->
+<script type="module">
+  // ---------- 与 Tauri 后端的交互层 ----------
+  let __TAURI__INVOKE;
+  try {
+    const tauri = await import('@tauri-apps/api/core');
+    __TAURI__INVOKE__ = tauri.invoke;
+  } catch {
+    // 回退：在无 Tauri 环境里也能预览（浏览器模式）
+    __TAURI__INVOKE__ = (cmd, args) => {
+      console.log('[tauri-mock]', cmd, args);
+      return Promise.resolve(true);
+    };
+  }
+
+  const invoke = __TAURI__INVOKE__;
+
+  // ---------- 页面初始化 ----------
+  const COLORS = ['cream', 'blue', 'pink', 'green', 'lavender', 'yellow'];
+  const note = document.getElementById('note');
+  const editor = document.getElementById('editor');
+  const timeStamp = document.getElementById('timeStamp');
+
+  // 时间戳
+  const now = new Date();
+  timeStamp.textContent = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  // ---------- 颜色切换 ----------
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.addEventListener('click', async () => {
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('active', d === dot));
+      note.dataset.color = dot.dataset.color;
+      await saveNote();
+    });
+  });
+
+  // ---------- 窗口操作 ----------
+  let pinned = false;
+  document.getElementById('btnClose').addEventListener('click', async () => {
+    await invoke('cmd_close_note');
+  });
+
+  document.getElementById('btnNew').addEventListener('click', async () => {
+    await invoke('cmd_create_note', { color: note.dataset.color });
+  });
+
+  document.getElementById('btnPin').addEventListener('click', async () => {
+    pinned = !pinned;
+    document.getElementById('btnPin').textContent = pinned ? '★' : '📌';
+    document.getElementById('btnPin').classList.toggle('pinned', pinned);
+    await invoke('cmd_pin_note', { pinned });
+  });
+
+  // ---------- Markdown 渲染（失焦） ----------
+  function parseMarkdown(raw) {
+    if (!raw || !raw.trim()) return '';
+    let html = raw
+      .replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+      .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+      .replace(/^#\s+(.+)$/gm, '<h1>$1</h1>')
+      .replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+    return html;
+  }
+
+  editor.addEventListener('focus', () => {
+    const html = editor.innerHTML;
+    // 转回纯文本
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const lines = [];
+    (function walk(node) {
+      node.childNodes.forEach(child => {
+        if (child.nodeType === 3) lines.push(child.textContent);
+        else if (child.tagName === 'BR') lines.push('\n');
+        else if (child.tagName === 'P') { walk(child); lines.push('\n'); }
+        else if (child.tagName === 'H1' || child.tagName === 'H2' || child.tagName === 'H3') {
+          const prefix = child.tagName === 'H1' ? '# ' : child.tagName === 'H2' ? '## ' : '### ';
+          lines.push(prefix + child.textContent + '\n');
+        } else if (child.tagName === 'BLOCKQUOTE') {
+          child.textContent.split('\n').forEach(l => lines.push('> ' + l));
+          lines.push('\n');
+        } else if (child.tagName === 'LI') {
+          lines.push('- ' + child.textContent);
+        } else if (child.tagName === 'CODE') {
+          lines.push('`' + child.textContent + '`');
+        } else {
+          walk(child);
+        }
+      });
+    })(tmp);
+    editor.innerText = lines.join('').trim();
+  });
+
+  editor.addEventListener('blur', () => {
+    const raw = editor.innerText;
+    if (!raw.trim()) return;
+    editor.innerHTML = parseMarkdown(raw);
+    saveNote();
+  });
+
+  // 失焦 / 颜色 / 关闭前 都保存
+  async function saveNote() {
+    try {
+      await invoke('cmd_save_note', {
+        content: editor.innerHTML,
+        plainText: editor.innerText,
+        color: note.dataset.color
+      });
+    } catch (e) { /* 离线场景下静默 */ }
+  }
+
+  // 窗口关闭前 / 每 10 秒自动保存一次
+  setInterval(saveNote, 10000);
+
+  // ---------- 快捷键 ----------
+  document.addEventListener('keydown', async (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+      e.preventDefault();
+      await invoke('cmd_create_note', { color: note.dataset.color });
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') {
+      e.preventDefault();
+      await saveNote();
+      await invoke('cmd_close_note');
+    }
+  });
+</script>
+
+</body>
+</html>

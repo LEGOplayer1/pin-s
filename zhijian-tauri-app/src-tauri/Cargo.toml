@@ -1,0 +1,47 @@
+[package]
+name = "zhijian"
+version = "0.1.0"
+description = "纸间 - 精致极简主义便利贴（Tauri 版）"
+authors = ["纸间团队"]
+edition = "2021"
+rust-version = "1.75"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# 核心
+tauri = { version = "2", features = [
+    "tray-icon",           # 系统托盘
+    "window-all",          # 所有窗口相关 API
+    "fs-all",              # 文件系统（读写 notes.json）
+    "shell-open",          # 打开外部（可选）
+    "notification-all",    # 系统通知（提醒功能用）
+    "global-shortcut-all", # 全局快捷键（可选）
+] }
+tauri-plugin-single-instance = "2" # 单实例
+
+# 数据与序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# 文件与路径
+dirs = "5"          # 获取 %APPDATA% 等跨平台目录
+
+# 错误处理与日志
+anyhow = "1"
+log = "0.4"
+env_logger = "0.11"
+
+# 时间戳
+chrono = { version = "0.4", features = ["serde"] }
+
+# 便捷宏
+once_cell = "1"
+
+[profile.release]
+opt-level = "z"          # 最小体积优化
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
