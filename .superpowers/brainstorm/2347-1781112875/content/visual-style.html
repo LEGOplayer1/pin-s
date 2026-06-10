@@ -1,58 +1,1104 @@
-<h2>便利贴视觉风格方向</h2>
-<p class="subtitle">选择一个最接近你心中"高质感便利贴"的方向</p>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纸间 — 精致便利贴</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Playfair+Display:wght@400;500;600&family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-<div class="cards">
-  <div class="card" data-choice="a" onclick="toggleSelect(this)">
-    <div class="card-image" style="padding: 24px; background: #1a1a2e; min-height: 200px;">
-      <!-- Dark glassmorphism style -->
-      <div style="background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.12); margin-bottom: 12px;">
-        <div style="color: #e0e0e0; font-size: 13px; font-weight: 500; margin-bottom: 8px;">今日待办</div>
-        <div style="color: rgba(255,255,255,0.6); font-size: 12px; line-height: 1.6;">完成设计稿评审<br>更新项目文档<br>准备周会材料</div>
-      </div>
-      <div style="background: rgba(255,200,100,0.12); backdrop-filter: blur(20px); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,200,100,0.15);">
-        <div style="color: #ffc864; font-size: 13px; font-weight: 500; margin-bottom: 8px;">灵感笔记</div>
-        <div style="color: rgba(255,255,255,0.5); font-size: 12px; line-height: 1.6;">尝试新的配色方案</div>
-      </div>
-    </div>
-    <div class="card-body">
-      <h3>A. 暗色毛玻璃</h3>
-      <p>深色背景 + 半透明磨砂质感，现代感强，适合深色桌面</p>
-    </div>
+:root {
+  --bg: #F2EDE4;
+  --bg-warm: #EDE8DF;
+  --fg: #4A433A;
+  --fg-light: #8A8279;
+  --fg-muted: #B0A899;
+  --accent: #9B8B7A;
+  --accent-hover: #8A7A69;
+
+  --note-cream: #FAF6EE;
+  --note-blue: #E8EDF2;
+  --note-pink: #F2E8E8;
+  --note-green: #E8F0E8;
+  --note-lavender: #ECE8F0;
+  --note-yellow: #F5F0DC;
+
+  --shadow-soft: 0 2px 12px rgba(74, 67, 58, 0.08), 0 1px 4px rgba(74, 67, 58, 0.04);
+  --shadow-hover: 0 8px 32px rgba(74, 67, 58, 0.12), 0 2px 8px rgba(74, 67, 58, 0.06);
+  --shadow-drag: 0 16px 48px rgba(74, 67, 58, 0.18), 0 4px 16px rgba(74, 67, 58, 0.08);
+
+  --radius: 4px;
+  --radius-lg: 8px;
+
+  --font-cn: 'LXGW WenKai', '霞鹜文楷', serif;
+  --font-en-display: 'Playfair Display', serif;
+  --font-en-body: 'Crimson Pro', serif;
+
+  --note-width: 240px;
+  --note-min-height: 160px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: var(--font-cn);
+  color: var(--fg);
+  background: var(--bg);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* === Paper texture overlay === */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* === Desktop === */
+#desktop {
+  position: relative;
+  width: 100%; height: 100%;
+  z-index: 1;
+}
+
+/* === Top bar === */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(242, 237, 228, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(74, 67, 58, 0.06);
+  z-index: 1000;
+}
+
+#topbar .brand {
+  display: flex; align-items: baseline; gap: 10px;
+}
+
+#topbar .brand h1 {
+  font-family: var(--font-en-display);
+  font-size: 22px; font-weight: 500;
+  color: var(--fg);
+  letter-spacing: 1px;
+}
+
+#topbar .brand span {
+  font-size: 12px; color: var(--fg-muted);
+  letter-spacing: 2px;
+}
+
+#topbar .actions {
+  display: flex; align-items: center; gap: 12px;
+}
+
+#search-box {
+  position: relative;
+  display: flex; align-items: center;
+}
+
+#search-box input {
+  width: 0; padding: 0;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: transparent;
+  font-family: var(--font-cn);
+  font-size: 13px; color: var(--fg);
+  outline: none;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#search-box.active input {
+  width: 200px; padding: 7px 14px 7px 34px;
+  border-color: rgba(74, 67, 58, 0.12);
+  background: rgba(255,255,255,0.6);
+}
+
+#search-box .search-icon {
+  position: absolute; left: 10px;
+  cursor: pointer;
+  color: var(--fg-muted);
+  transition: color 0.2s;
+  z-index: 1;
+}
+
+#search-box:not(.active) .search-icon {
+  position: relative; left: 0;
+}
+
+#search-box .search-icon:hover { color: var(--fg); }
+
+.btn-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%;
+  background: transparent;
+  color: var(--fg-light);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 18px;
+}
+.btn-icon:hover {
+  background: rgba(74, 67, 58, 0.06);
+  color: var(--fg);
+}
+
+.btn-new {
+  width: auto; padding: 0 16px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-cn);
+  font-size: 13px;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.25s;
+}
+.btn-new:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(155, 139, 122, 0.25);
+}
+
+/* === Sticky Note === */
+.note {
+  position: absolute;
+  width: var(--note-width);
+  min-height: var(--note-min-height);
+  border-radius: var(--radius);
+  cursor: default;
+  transition: box-shadow 0.3s, transform 0.15s, opacity 0.4s;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.note::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: var(--radius);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+.note.dragging {
+  z-index: 999 !important;
+  box-shadow: var(--shadow-drag) !important;
+  transform: rotate(0deg) scale(1.03) !important;
+  cursor: grabbing;
+}
+
+.note.focused {
+  z-index: 500;
+  box-shadow: var(--shadow-hover);
+}
+
+.notes-blurred .note:not(.focused) {
+  opacity: 0.3;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.note.collapsed {
+  min-height: 0 !important;
+  height: 40px !important;
+  overflow: hidden;
+}
+
+.note.pinned {
+  z-index: 100;
+}
+
+.note.pinned::after {
+  content: '';
+  position: absolute;
+  top: -6px; left: 50%; transform: translateX(-50%);
+  width: 12px; height: 12px;
+  background: radial-gradient(circle, #C4A882 40%, #B09872 100%);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 5;
+}
+
+/* Note header */
+.note-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px 4px;
+  position: relative; z-index: 1;
+}
+
+.note-color-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.note-color-dot:hover { transform: scale(1.3); }
+
+.note-actions {
+  display: flex; gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.note:hover .note-actions { opacity: 1; }
+
+.note-action {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 3px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.note-action:hover {
+  background: rgba(74, 67, 58, 0.08);
+  color: var(--fg);
+}
+
+/* Note body */
+.note-body {
+  flex: 1;
+  padding: 4px 14px 14px;
+  position: relative; z-index: 1;
+  cursor: text;
+}
+
+.note-body[contenteditable="true"] {
+  outline: none;
+  font-family: var(--font-cn);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--fg);
+  min-height: 80px;
+  word-break: break-word;
+}
+
+.note-body[contenteditable="true"]:empty::before {
+  content: '记点什么...';
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+/* Note footer */
+.note-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px 8px;
+  font-size: 10px;
+  color: var(--fg-muted);
+  position: relative; z-index: 1;
+}
+
+.note-reminder {
+  display: flex; align-items: center; gap: 3px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.note-reminder:hover { color: var(--fg-light); }
+.note-reminder.active { color: #C49882; }
+
+/* Color variants */
+.note[data-color="cream"]   { background: var(--note-cream);   box-shadow: var(--shadow-soft); }
+.note[data-color="blue"]    { background: var(--note-blue);    box-shadow: var(--shadow-soft); }
+.note[data-color="pink"]    { background: var(--note-pink);    box-shadow: var(--shadow-soft); }
+.note[data-color="green"]   { background: var(--note-green);   box-shadow: var(--shadow-soft); }
+.note[data-color="lavender"]{ background: var(--note-lavender);box-shadow: var(--shadow-soft); }
+.note[data-color="yellow"]  { background: var(--note-yellow);  box-shadow: var(--shadow-soft); }
+
+.note[data-color="cream"]   .note-color-dot { background: #D4C8B0; }
+.note[data-color="blue"]    .note-color-dot { background: #A8B8C8; }
+.note[data-color="pink"]    .note-color-dot { background: #C8A8A8; }
+.note[data-color="green"]   .note-color-dot { background: #A8C0A8; }
+.note[data-color="lavender"].note-color-dot { background: #B8A8C0; }
+.note[data-color="yellow"]  .note-color-dot { background: #C8C0A0; }
+
+/* === Color picker popup === */
+.color-picker {
+  position: absolute;
+  display: flex; gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.95);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  z-index: 2000;
+  opacity: 0; pointer-events: none;
+  transform: translateY(4px);
+  transition: all 0.2s;
+}
+.color-picker.visible {
+  opacity: 1; pointer-events: auto;
+  transform: translateY(0);
+}
+.color-picker .swatch {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+.color-picker .swatch:hover { transform: scale(1.2); }
+.color-picker .swatch.active { border-color: var(--fg); }
+
+/* === Reminder popup === */
+.reminder-popup {
+  position: absolute;
+  padding: 12px;
+  background: rgba(255,255,255,0.95);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  z-index: 2000;
+  opacity: 0; pointer-events: none;
+  transform: translateY(4px);
+  transition: all 0.2s;
+  min-width: 200px;
+}
+.reminder-popup.visible {
+  opacity: 1; pointer-events: auto;
+  transform: translateY(0);
+}
+.reminder-popup label {
+  font-size: 11px; color: var(--fg-muted);
+  display: block; margin-bottom: 6px;
+}
+.reminder-popup input {
+  width: 100%; padding: 6px 8px;
+  border: 1px solid rgba(74,67,58,0.12);
+  border-radius: var(--radius);
+  font-family: var(--font-cn);
+  font-size: 12px; color: var(--fg);
+  outline: none;
+  background: rgba(255,255,255,0.8);
+}
+.reminder-popup input:focus { border-color: var(--accent); }
+.reminder-popup .reminder-actions {
+  display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end;
+}
+.reminder-popup button {
+  padding: 4px 12px;
+  border: none; border-radius: var(--radius);
+  font-family: var(--font-cn);
+  font-size: 11px; cursor: pointer;
+  transition: all 0.15s;
+}
+.reminder-popup .btn-save {
+  background: var(--accent); color: #fff;
+}
+.reminder-popup .btn-save:hover { background: var(--accent-hover); }
+.reminder-popup .btn-clear {
+  background: transparent; color: var(--fg-muted);
+}
+.reminder-popup .btn-clear:hover { color: var(--fg); }
+
+/* === Create animation === */
+@keyframes noteFall {
+  0% {
+    opacity: 0;
+    transform: translateY(-60px) rotate(-8deg) scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(8px) rotate(2deg) scale(1.02);
+  }
+  70% {
+    transform: translateY(-4px) rotate(-0.5deg) scale(0.99);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+.note.entering {
+  animation: noteFall 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* === Arrange animation === */
+@keyframes noteArrange {
+  0% { transition: none; }
+  100% { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+}
+
+.note.arranging {
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              top 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === Markdown rendering === */
+.note-body h1, .note-body h2, .note-body h3 {
+  font-family: var(--font-en-display), var(--font-cn);
+  margin: 8px 0 4px;
+  line-height: 1.4;
+}
+.note-body h1 { font-size: 18px; }
+.note-body h2 { font-size: 15px; }
+.note-body h3 { font-size: 13px; }
+
+.note-body strong { font-weight: 700; }
+.note-body em { font-style: italic; }
+.note-body code {
+  background: rgba(74,67,58,0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: 'Crimson Pro', monospace;
+}
+.note-body ul, .note-body ol {
+  padding-left: 18px;
+  margin: 4px 0;
+}
+.note-body li { margin: 2px 0; }
+.note-body blockquote {
+  border-left: 3px solid var(--fg-muted);
+  padding-left: 10px;
+  margin: 6px 0;
+  color: var(--fg-light);
+  font-style: italic;
+}
+.note-body hr {
+  border: none;
+  border-top: 1px solid rgba(74,67,58,0.1);
+  margin: 8px 0;
+}
+
+/* === Toast === */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 10px 24px;
+  background: rgba(74, 67, 58, 0.9);
+  color: #F5F0E8;
+  border-radius: 20px;
+  font-size: 13px;
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* === Empty state === */
+#empty-state {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: var(--fg-muted);
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.4s;
+}
+#empty-state.hidden { opacity: 0; }
+#empty-state .icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+#empty-state p {
+  font-size: 14px;
+  line-height: 1.8;
+  letter-spacing: 1px;
+}
+#empty-state .shortcut {
+  font-size: 11px;
+  margin-top: 12px;
+  opacity: 0.6;
+}
+
+/* === Scrollbar === */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(74,67,58,0.15); border-radius: 2px; }
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  :root { --note-width: 180px; --note-min-height: 120px; }
+  #topbar { padding: 0 16px; }
+  #topbar .brand h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="brand">
+    <h1>纸间</h1>
+    <span>PAPER SPACE</span>
   </div>
-
-  <div class="card" data-choice="b" onclick="toggleSelect(this)">
-    <div class="card-image" style="padding: 24px; background: #f5f0e8; min-height: 200px;">
-      <!-- Warm paper style -->
-      <div style="background: #fffef7; border-radius: 4px; padding: 20px; box-shadow: 2px 3px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04); margin-bottom: 12px; border-left: 3px solid #e8a87c;">
-        <div style="color: #5a4a3a; font-size: 13px; font-weight: 600; margin-bottom: 8px;">今日待办</div>
-        <div style="color: #7a6a5a; font-size: 12px; line-height: 1.6;">完成设计稿评审<br>更新项目文档<br>准备周会材料</div>
-      </div>
-      <div style="background: #fff9e6; border-radius: 4px; padding: 20px; box-shadow: 2px 3px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04); border-left: 3px solid #d4c25a;">
-        <div style="color: #5a4a3a; font-size: 13px; font-weight: 600; margin-bottom: 8px;">灵感笔记</div>
-        <div style="color: #7a6a5a; font-size: 12px; line-height: 1.6;">尝试新的配色方案</div>
-      </div>
+  <div class="actions">
+    <div id="search-box">
+      <span class="search-icon" onclick="toggleSearch()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+      </span>
+      <input type="text" id="search-input" placeholder="搜索便利贴..." oninput="filterNotes(this.value)">
     </div>
-    <div class="card-body">
-      <h3>B. 温暖纸质</h3>
-      <p>模拟真实便利贴的纸张质感，暖色调，左侧色条区分类型</p>
-    </div>
-  </div>
-
-  <div class="card" data-choice="c" onclick="toggleSelect(this)">
-    <div class="card-image" style="padding: 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 200px;">
-      <!-- Minimal color blocks -->
-      <div style="background: rgba(255,255,255,0.95); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin-bottom: 12px;">
-        <div style="color: #333; font-size: 13px; font-weight: 600; margin-bottom: 8px;">今日待办</div>
-        <div style="color: #666; font-size: 12px; line-height: 1.6;">完成设计稿评审<br>更新项目文档<br>准备周会材料</div>
-      </div>
-      <div style="background: rgba(255,255,255,0.95); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-        <div style="color: #333; font-size: 13px; font-weight: 600; margin-bottom: 8px;">灵感笔记</div>
-        <div style="color: #666; font-size: 12px; line-height: 1.6;">尝试新的配色方案</div>
-      </div>
-    </div>
-    <div class="card-body">
-      <h3>C. 极简白卡</h3>
-      <p>纯白卡片 + 大圆角 + 柔和阴影，干净克制，类似 iOS 风格</p>
-    </div>
+    <button class="btn-icon" onclick="arrangeNotes()" title="自动整理">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
+    <button class="btn-icon btn-new" onclick="createNote()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      新建
+    </button>
   </div>
 </div>
+
+<div id="desktop">
+  <div id="empty-state">
+    <div class="icon">📝</div>
+    <p>双击桌面创建便利贴<br>或点击右上角「新建」</p>
+    <div class="shortcut">快捷键：Ctrl + N</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== State ====================
+const COLORS = ['cream', 'blue', 'pink', 'green', 'lavender', 'yellow'];
+const COLOR_MAP = {
+  cream: '#FAF6EE', blue: '#E8EDF2', pink: '#F2E8E8',
+  green: '#E8F0E8', lavender: '#ECE8F0', yellow: '#F5F0DC'
+};
+let notes = [];
+let noteIdCounter = 0;
+let zCounter = 10;
+let dragState = null;
+let focusedNoteId = null;
+
+// ==================== Note CRUD ====================
+function createNote(options = {}) {
+  const id = ++noteIdCounter;
+  const color = options.color || COLORS[Math.floor(Math.random() * COLORS.length)];
+  const x = options.x ?? (80 + Math.random() * (window.innerWidth - 360));
+  const y = options.y ?? (80 + Math.random() * (window.innerHeight - 300));
+  const rotation = (Math.random() - 0.5) * 4;
+
+  const noteData = {
+    id, color, x, y, rotation,
+    content: options.content || '',
+    pinned: false,
+    collapsed: false,
+    reminder: null,
+    created: new Date().toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  };
+  notes.push(noteData);
+
+  const el = buildNoteElement(noteData);
+  el.classList.add('entering');
+  document.getElementById('desktop').appendChild(el);
+  setTimeout(() => el.classList.remove('entering'), 650);
+
+  updateEmptyState();
+  return noteData;
+}
+
+function buildNoteElement(data) {
+  const el = document.createElement('div');
+  el.className = 'note' + (data.pinned ? ' pinned' : '') + (data.collapsed ? ' collapsed' : '');
+  el.dataset.id = data.id;
+  el.dataset.color = data.color;
+  el.style.left = data.x + 'px';
+  el.style.top = data.y + 'px';
+  el.style.transform = `rotate(${data.rotation}deg)`;
+  el.style.zIndex = ++zCounter;
+
+  el.innerHTML = `
+    <div class="note-header">
+      <div class="note-color-dot" data-action="color" title="更换颜色"></div>
+      <div class="note-actions">
+        <button class="note-action" data-action="pin" title="置顶">${data.pinned ? '📌' : '📍'}</button>
+        <button class="note-action" data-action="collapse" title="收起">${data.collapsed ? '▢' : '—'}</button>
+        <button class="note-action" data-action="delete" title="删除">✕</button>
+      </div>
+    </div>
+    <div class="note-body" contenteditable="true">${data.content}</div>
+    <div class="note-footer">
+      <span class="note-time">${data.created}</span>
+      <span class="note-reminder ${data.reminder ? 'active' : ''}" data-action="reminder" title="设置提醒">${data.reminder ? '🔔 ' + formatReminder(data.reminder) : '🔕'}</span>
+    </div>
+  `;
+
+  // Drag
+  el.addEventListener('mousedown', onNoteMouseDown);
+  el.addEventListener('touchstart', onNoteTouchStart, { passive: false });
+
+  // Focus
+  el.addEventListener('mousedown', () => focusNote(data.id));
+
+  // Actions
+  el.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleAction(btn.dataset.action, data.id, e);
+    });
+  });
+
+  // Content change
+  const body = el.querySelector('.note-body');
+  body.addEventListener('input', () => {
+    data.content = body.innerHTML;
+  });
+  body.addEventListener('blur', () => {
+    renderMarkdown(body, data);
+  });
+  body.addEventListener('focus', () => {
+    body.innerHTML = data.content;
+  });
+
+  return el;
+}
+
+function deleteNote(id) {
+  const el = getNoteEl(id);
+  if (!el) return;
+  el.style.transition = 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+  el.style.opacity = '0';
+  el.style.transform += ' scale(0.8)';
+  setTimeout(() => {
+    el.remove();
+    notes = notes.filter(n => n.id !== id);
+    if (focusedNoteId === id) unfocusAll();
+    updateEmptyState();
+  }, 350);
+}
+
+function getNoteData(id) { return notes.find(n => n.id === id); }
+function getNoteEl(id) { return document.querySelector(`.note[data-id="${id}"]`); }
+
+// ==================== Drag ====================
+function onNoteMouseDown(e) {
+  if (e.target.closest('[data-action]') || e.target.closest('[contenteditable]')) return;
+  startDrag(e.currentTarget, e.clientX, e.clientY);
+  e.preventDefault();
+}
+
+function onNoteTouchStart(e) {
+  if (e.target.closest('[data-action]') || e.target.closest('[contenteditable]')) return;
+  const t = e.touches[0];
+  startDrag(e.currentTarget, t.clientX, t.clientY);
+  e.preventDefault();
+}
+
+function startDrag(el, cx, cy) {
+  const id = parseInt(el.dataset.id);
+  const data = getNoteData(id);
+  el.style.zIndex = ++zCounter;
+  el.classList.add('dragging');
+
+  dragState = {
+    id, el,
+    startX: cx, startY: cy,
+    origX: data.x, origY: data.y,
+    lastX: cx, lastY: cy,
+    velocityX: 0, velocityY: 0,
+    startTime: Date.now()
+  };
+}
+
+document.addEventListener('mousemove', onDragMove);
+document.addEventListener('touchmove', (e) => {
+  if (!dragState) return;
+  const t = e.touches[0];
+  onDragMove({ clientX: t.clientX, clientY: t.clientY });
+  e.preventDefault();
+}, { passive: false });
+
+function onDragMove(e) {
+  if (!dragState) return;
+  const dx = e.clientX - dragState.startX;
+  const dy = e.clientY - dragState.startY;
+  const data = getNoteData(dragState.id);
+
+  data.x = dragState.origX + dx;
+  data.y = dragState.origY + dy;
+
+  dragState.el.style.left = data.x + 'px';
+  dragState.el.style.top = data.y + 'px';
+
+  dragState.velocityX = e.clientX - dragState.lastX;
+  dragState.velocityY = e.clientY - dragState.lastY;
+  dragState.lastX = e.clientX;
+  dragState.lastY = e.clientY;
+}
+
+document.addEventListener('mouseup', onDragEnd);
+document.addEventListener('touchend', onDragEnd);
+
+function onDragEnd() {
+  if (!dragState) return;
+  const { el, id, velocityX, velocityY } = dragState;
+  const data = getNoteData(id);
+
+  // Inertia
+  const inertiaX = velocityX * 8;
+  const inertiaY = velocityY * 8;
+  data.x += inertiaX;
+  data.y += inertiaY;
+
+  // Magnetic snap to edges
+  const margin = 20;
+  const w = el.offsetWidth;
+  const h = el.offsetHeight;
+  const maxX = window.innerWidth - w - margin;
+  const maxY = window.innerHeight - h - margin;
+
+  if (data.x < margin) data.x = margin;
+  if (data.x > maxX) data.x = maxX;
+  if (data.y < 60) data.y = 60;
+  if (data.y > maxY) data.y = maxY;
+
+  el.style.transition = 'left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+  el.style.left = data.x + 'px';
+  el.style.top = data.y + 'px';
+
+  setTimeout(() => {
+    el.style.transition = '';
+    el.classList.remove('dragging');
+  }, 400);
+
+  dragState = null;
+}
+
+// ==================== Focus ====================
+function focusNote(id) {
+  if (focusedNoteId === id) return;
+  focusedNoteId = id;
+  const desktop = document.getElementById('desktop');
+  desktop.classList.add('notes-blurred');
+  const el = getNoteEl(id);
+  if (el) el.classList.add('focused');
+}
+
+function unfocusAll() {
+  focusedNoteId = null;
+  const desktop = document.getElementById('desktop');
+  desktop.classList.remove('notes-blurred');
+  document.querySelectorAll('.note.focused').forEach(el => el.classList.remove('focused'));
+}
+
+document.getElementById('desktop').addEventListener('click', (e) => {
+  if (e.target.id === 'desktop' || e.target.id === 'empty-state' || e.target.closest('#empty-state')) {
+    unfocusAll();
+  }
+});
+
+// ==================== Actions ====================
+function handleAction(action, id, e) {
+  const data = getNoteData(id);
+  const el = getNoteEl(id);
+  if (!data || !el) return;
+
+  switch (action) {
+    case 'delete':
+      deleteNote(id);
+      break;
+    case 'pin':
+      data.pinned = !data.pinned;
+      el.classList.toggle('pinned', data.pinned);
+      el.querySelector('[data-action="pin"]').textContent = data.pinned ? '📌' : '📍';
+      showToast(data.pinned ? '已置顶' : '已取消置顶');
+      break;
+    case 'collapse':
+      data.collapsed = !data.collapsed;
+      el.classList.toggle('collapsed', data.collapsed);
+      el.querySelector('[data-action="collapse"]').textContent = data.collapsed ? '▢' : '—';
+      break;
+    case 'color':
+      showColorPicker(id, e);
+      break;
+    case 'reminder':
+      showReminderPopup(id, e);
+      break;
+  }
+}
+
+// ==================== Color Picker ====================
+function showColorPicker(id, e) {
+  closeAllPopups();
+  const data = getNoteData(id);
+  const el = getNoteEl(id);
+  const dot = el.querySelector('.note-color-dot');
+  const rect = dot.getBoundingClientRect();
+
+  const picker = document.createElement('div');
+  picker.className = 'color-picker';
+  picker.innerHTML = COLORS.map(c =>
+    `<div class="swatch ${c === data.color ? 'active' : ''}" style="background:${COLOR_MAP[c]}" data-color="${c}"></div>`
+  ).join('');
+
+  picker.style.left = rect.left + 'px';
+  picker.style.top = (rect.bottom + 6) + 'px';
+
+  picker.querySelectorAll('.swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      const newColor = sw.dataset.color;
+      data.color = newColor;
+      el.dataset.color = newColor;
+      picker.remove();
+    });
+  });
+
+  document.body.appendChild(picker);
+  requestAnimationFrame(() => picker.classList.add('visible'));
+}
+
+// ==================== Reminder ====================
+function showReminderPopup(id, e) {
+  closeAllPopups();
+  const data = getNoteData(id);
+  const el = getNoteEl(id);
+  const reminderEl = el.querySelector('.note-reminder');
+  const rect = reminderEl.getBoundingClientRect();
+
+  const popup = document.createElement('div');
+  popup.className = 'reminder-popup';
+  popup.innerHTML = `
+    <label>提醒时间</label>
+    <input type="datetime-local" value="${data.reminder || ''}">
+    <div class="reminder-actions">
+      <button class="btn-clear" onclick="this.closest('.reminder-popup').remove(); clearReminder(${id})">清除</button>
+      <button class="btn-save" onclick="saveReminder(${id}, this.closest('.reminder-popup'))">保存</button>
+    </div>
+  `;
+
+  popup.style.left = Math.min(rect.left, window.innerWidth - 220) + 'px';
+  popup.style.top = (rect.bottom + 6) + 'px';
+
+  document.body.appendChild(popup);
+  requestAnimationFrame(() => popup.classList.add('visible'));
+}
+
+function saveReminder(id, popup) {
+  const data = getNoteData(id);
+  const el = getNoteEl(id);
+  const input = popup.querySelector('input');
+  const val = input.value;
+
+  if (val) {
+    data.reminder = val;
+    const reminderEl = el.querySelector('.note-reminder');
+    reminderEl.classList.add('active');
+    reminderEl.innerHTML = '🔔 ' + formatReminder(val);
+    scheduleReminder(id, val);
+    showToast('提醒已设置');
+  }
+  popup.remove();
+}
+
+function clearReminder(id) {
+  const data = getNoteData(id);
+  const el = getNoteEl(id);
+  data.reminder = null;
+  const reminderEl = el.querySelector('.note-reminder');
+  reminderEl.classList.remove('active');
+  reminderEl.innerHTML = '🔕';
+  showToast('提醒已清除');
+}
+
+function formatReminder(val) {
+  const d = new Date(val);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function scheduleReminder(id, timeStr) {
+  const target = new Date(timeStr).getTime();
+  const now = Date.now();
+  const delay = target - now;
+  if (delay > 0) {
+    setTimeout(() => {
+      const data = getNoteData(id);
+      if (data) {
+        showToast('⏰ 提醒：' + (data.content.replace(/<[^>]*>/g, '').slice(0, 30) || '便利贴'));
+        focusNote(id);
+      }
+    }, delay);
+  }
+}
+
+// ==================== Markdown ====================
+function renderMarkdown(bodyEl, data) {
+  const raw = bodyEl.innerText;
+  if (!raw.trim()) { bodyEl.innerHTML = ''; data.content = ''; return; }
+
+  let html = raw
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
+    .replace(/\n/g, '<br>');
+
+  bodyEl.innerHTML = html;
+  data.content = html;
+}
+
+// ==================== Arrange ====================
+function arrangeNotes() {
+  const padding = 32;
+  const gap = 20;
+  const noteW = 240;
+  const noteH = 180;
+  const cols = Math.floor((window.innerWidth - padding * 2 + gap) / (noteW + gap));
+  const startX = padding;
+  const startY = 72;
+
+  let i = 0;
+  // Pinned notes first
+  const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
+  sorted.forEach(data => {
+    const el = getNoteEl(data.id);
+    if (!el) return;
+
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+
+    data.x = startX + col * (noteW + gap);
+    data.y = startY + row * (noteH + gap);
+    data.rotation = 0;
+
+    el.classList.add('arranging');
+    el.style.left = data.x + 'px';
+    el.style.top = data.y + 'px';
+    el.style.transform = 'rotate(0deg)';
+
+    setTimeout(() => el.classList.remove('arranging'), 550);
+    i++;
+  });
+
+  showToast('已自动整理');
+}
+
+// ==================== Search ====================
+function toggleSearch() {
+  const box = document.getElementById('search-box');
+  const input = document.getElementById('search-input');
+  box.classList.toggle('active');
+  if (box.classList.contains('active')) {
+    input.focus();
+  } else {
+    input.value = '';
+    filterNotes('');
+  }
+}
+
+function filterNotes(query) {
+  const q = query.toLowerCase().trim();
+  notes.forEach(data => {
+    const el = getNoteEl(data.id);
+    if (!el) return;
+    const text = el.querySelector('.note-body').innerText.toLowerCase();
+    if (!q || text.includes(q)) {
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+}
+
+// ==================== Helpers ====================
+function closeAllPopups() {
+  document.querySelectorAll('.color-picker, .reminder-popup').forEach(p => p.remove());
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.color-picker') && !e.target.closest('[data-action="color"]')) {
+    document.querySelectorAll('.color-picker').forEach(p => p.remove());
+  }
+  if (!e.target.closest('.reminder-popup') && !e.target.closest('[data-action="reminder"]')) {
+    document.querySelectorAll('.reminder-popup').forEach(p => p.remove());
+  }
+});
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 2200);
+}
+
+function updateEmptyState() {
+  const state = document.getElementById('empty-state');
+  state.classList.toggle('hidden', notes.length > 0);
+}
+
+// ==================== Keyboard shortcuts ====================
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'n') {
+    e.preventDefault();
+    createNote();
+  }
+  if (e.key === 'Escape') {
+    unfocusAll();
+    closeAllPopups();
+    const box = document.getElementById('search-box');
+    if (box.classList.contains('active')) {
+      box.classList.remove('active');
+      document.getElementById('search-input').value = '';
+      filterNotes('');
+    }
+  }
+});
+
+// ==================== Double-click desktop ====================
+document.getElementById('desktop').addEventListener('dblclick', (e) => {
+  if (e.target.id === 'desktop' || e.target.id === 'empty-state' || e.target.closest('#empty-state')) {
+    createNote({ x: e.clientX - 120, y: e.clientY - 80 });
+  }
+});
+
+// ==================== Init with sample notes ====================
+function init() {
+  createNote({
+    x: 60, y: 90,
+    color: 'cream',
+    content: '<h2>欢迎使用纸间</h2><p>一个精致的便利贴应用</p><blockquote>拟物与扁平的平衡</blockquote>'
+  });
+  createNote({
+    x: 340, y: 120,
+    color: 'blue',
+    content: '<strong>设计理念</strong><br><em>莫兰迪色系 · 霞鹜文楷</em><br>低饱和度 · 护眼高级'
+  });
+  createNote({
+    x: 620, y: 80,
+    color: 'pink',
+    content: '<h3>交互亮点</h3><ul><li>纸张飘落动画</li><li>惯性拖拽 + 磁性吸附</li><li>聚焦模式</li><li>双击自动整理</li></ul>'
+  });
+  createNote({
+    x: 160, y: 340,
+    color: 'green',
+    content: '支持 <code>Markdown</code> 轻量格式化<br><br>颜色标签分类 + 搜索<br>置顶 / 收起到边缘<br>提醒功能'
+  });
+  createNote({
+    x: 480, y: 370,
+    color: 'lavender',
+    content: '<em>快捷键：</em><br><strong>Ctrl+N</strong> 新建便利贴<br><strong>双击桌面</strong> 快速创建<br><strong>Esc</strong> 取消聚焦'
+  });
+
+  // Stagger entrance
+  document.querySelectorAll('.note').forEach((el, i) => {
+    el.style.animationDelay = (i * 0.1) + 's';
+  });
+}
+
+init();
+</script>
+
+</body>
+</html>
