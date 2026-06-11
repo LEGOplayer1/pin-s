@@ -18,33 +18,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install Rust stable
         uses: dtolnay/rust-action@stable
-        with:
-          components: rustfmt, clippy
 
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Install Rust dependencies
-        run: |
-          cd src-tauri
-          cargo fetch
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
 
       - name: Prepare icon
         run: |
-          # Download a placeholder icon if not exists
-          if (!(Test-Path "src-tauri/icons/icon.png")) {
-            $iconUrl = "https://raw.githubusercontent.com/nicepkg/vscode-tauri-icon/main/icons/128.png"
-            Invoke-WebRequest -Uri $iconUrl -OutFile "src-tauri/icons/icon.png"
-          }
+          New-Item -ItemType Directory -Force -Path src-tauri\icons | Out-Null
+          $iconUrl = "https://raw.githubusercontent.com/nicepkg/vscode-tauri-icon/main/icons/128.png"
+          Invoke-WebRequest -Uri $iconUrl -OutFile src-tauri\icons\icon.png
 
       - name: Generate icons
-        run: npm run icon
+        run: tauri icon src-tauri\icons\icon.png
 
-      - name: Build Tauri app (Release)
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
