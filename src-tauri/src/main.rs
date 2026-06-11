@@ -9,7 +9,7 @@ use crate::window_manager::{
 use std::sync::Mutex;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::Manager;
+use tauri::{LogicalPosition, LogicalSize, Manager};
 
 // ========== IPC Commands ==========
 
@@ -102,10 +102,10 @@ fn cmd_set_window_rect(
     height: Option<i32>,
 ) -> Result<bool, String> {
     if let (Some(x), Some(y)) = (x, y) {
-        let _ = window.set_position(x as f64, y as f64);
+        let _ = window.set_position(LogicalPosition::new(x as f64, y as f64));
     }
     if let (Some(w), Some(h)) = (width, height) {
-        let _ = window.set_size(w as f64, h as f64);
+        let _ = window.set_size(LogicalSize::new(w as f64, h as f64));
     }
     Ok(true)
 }
