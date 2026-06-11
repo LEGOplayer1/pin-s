@@ -9,30 +9,30 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-action@stable
+      - name: Setup Rust
+        run: rustup default stable
 
       - name: Install Tauri CLI
         run: npm install -g @tauri-apps/cli
 
-      - name: Prepare icon
+      - name: Prepare icons
         run: |
           New-Item -ItemType Directory -Force -Path src-tauri\icons | Out-Null
           $iconUrl = "https://raw.githubusercontent.com/nicepkg/vscode-tauri-icon/main/icons/128.png"
           Invoke-WebRequest -Uri $iconUrl -OutFile src-tauri\icons\icon.png
-
-      - name: Generate icons
-        run: tauri icon src-tauri\icons\icon.png
+          tauri icon src-tauri\icons\icon.png
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
