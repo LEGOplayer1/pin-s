@@ -9,7 +9,7 @@ use crate::window_manager::{
 };
 
 use std::sync::Mutex;
-use tauri::tray::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::tray::{MenuBuilder, MenuItemBuilder, MouseButton, MouseButtonState, PredefinedMenuItem, TrayIconEvent};
 use tauri::Manager;
 
 // ========== IPC Commands ==========
@@ -312,7 +312,7 @@ fn main() {
                 })
                 .on_tray_icon_event(|tray, event| {
                     // 左键单击：切换显示/隐藏所有
-                    if matches!(event, tauri::tray::TrayIconEvent::LeftClick) {
+                    if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
                         let app = tray.app_handle();
                         let wins = app.webview_windows();
                         let any_visible = wins.values().any(|w| {
