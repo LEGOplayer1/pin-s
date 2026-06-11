@@ -55,12 +55,11 @@ jobs:
             - **Setup 安装包**：双击运行安装程序
             - **Portable 便携版**：双击直接运行，无需安装
 
-            ### 新功能
-            - 多窗口便利贴（无边框透明）
-            - 6 色莫兰迪配色
-            - 文本模式（Markdown 支持）
-            - 条目模式（拖拽排序、勾选完成）
-            - 系统托盘
+            ### v0.3.0 更新内容
+            - 修复窗口无法拖动问题（JS 拖拽替代 data-tauri-drag-region）
+            - 修复无法创建新便利贴问题（智能位置计算 + 焦点确保）
+            - 消除 Release 构建黑色控制台窗口
+            - 修复 NSIS 安装路径中文问题
           files: |
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/app/*.exe
