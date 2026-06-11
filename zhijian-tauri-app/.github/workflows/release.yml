@@ -21,7 +21,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Rust stable
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
@@ -32,14 +32,6 @@ jobs:
         run: |
           cd src-tauri
           cargo fetch
-
-      - name: Prepare icon
-        run: |
-          # Download a placeholder icon if not exists
-          if (!(Test-Path "src-tauri/icons/icon.png")) {
-            $iconUrl = "https://raw.githubusercontent.com/nicepkg/vscode-tauri-icon/main/icons/128.png"
-            Invoke-WebRequest -Uri $iconUrl -OutFile "src-tauri/icons/icon.png"
-          }
 
       - name: Generate icons
         run: npm run icon
@@ -58,11 +50,10 @@ jobs:
             - **Setup 安装包**：双击运行安装程序
             - **Portable 便携版**：双击直接运行，无需安装
 
-            ### 新功能
-            - 多窗口便利贴（无边框透明）
-            - 6 色莫兰迪配色
-            - 文本模式（Markdown 支持）
-            - 条目模式（拖拽排序、勾选完成）
-            - 系统托盘
+            ### v0.3.0 更新内容
+            - 修复窗口无法拖动问题（JS 拖拽替代 data-tauri-drag-region）
+            - 修复无法创建新便利贴问题（智能位置计算 + 焦点确保）
+            - 消除 Release 构建黑色控制台窗口
+            - 修复 NSIS 安装路径中文问题
           releaseDraft: false
           prerelease: false

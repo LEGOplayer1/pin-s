@@ -1,15 +1,18 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod note;
 mod window_manager;
 
 use crate::note::{
-    load_notes, remove_note, save_notes, upsert_note, Item, Mode, Note, NotesState, Rect,
+    load_notes, remove_note, save_notes, upsert_note, Item, Mode, Note, Rect,
 };
 use crate::window_manager::{
     build_note_window, create_note, new_id, restore_all_windows, AppState,
 };
 
 use std::sync::Mutex;
-use tauri::tray::{MenuBuilder, MenuItemBuilder, MouseButton, PredefinedMenuItem, TrayIconEvent};
+use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{LogicalPosition, LogicalSize, Manager};
 
 // ========== IPC Commands ==========
@@ -18,13 +21,12 @@ use tauri::{LogicalPosition, LogicalSize, Manager};
 #[tauri::command]
 fn cmd_create_note(
     app: tauri::AppHandle,
-    state: tauri::State<AppState>,
     color: Option<String>,
     content: Option<String>,
     x: Option<i32>,
     y: Option<i32>,
 ) -> Result<String, String> {
-    create_note(&app, state, color, content, x, y).map_err(|e| e.to_string())
+    create_note(&app, color, content, x, y).map_err(|e| e.to_string())
 }
 
 /// 关闭当前便利贴窗口（同时从 state 中删除）
@@ -104,10 +106,10 @@ fn cmd_set_window_rect(
     height: Option<i32>,
 ) -> Result<bool, String> {
     if let (Some(x), Some(y)) = (x, y) {
-        let _ = window.set_position(LogicalPosition::new(x, y));
+        let _ = window.set_position(LogicalPosition::new(x as f64, y as f64));
     }
     if let (Some(w), Some(h)) = (width, height) {
-        let _ = window.set_size(LogicalSize::new(w, h));
+        let _ = window.set_size(LogicalSize::new(w as f64, h as f64));
     }
     Ok(true)
 }
@@ -249,8 +251,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             // 再次启动应用时：新建一张便利贴
-            let state: tauri::State<AppState> = app.state();
-            let _ = create_note(app, state, Some("cream".into()), None, None, None);
+            let _ = create_note(app, Some("cream".into()), None, None, None);
         }))
         .manage(AppState {
             notes: Mutex::new(initial_state),
@@ -272,7 +273,6 @@ fn main() {
         ])
         .setup(|app| {
             // ========== 系统托盘 ==========
-            // 使用 tauri::tray::MenuBuilder 构建菜单
             let new_item = MenuItemBuilder::with_id("new", "新建便利贴").build(app)?;
             let show_item = MenuItemBuilder::with_id("show", "显示全部").build(app)?;
             let hide_item = MenuItemBuilder::with_id("hide", "最小化全部").build(app)?;
@@ -288,15 +288,13 @@ fn main() {
                 .item(&quit_item)
                 .build()?;
 
-            // 注意：icons 目录请准备 32x32 PNG；此处使用 Tauri 默认查找逻辑
-            let _tray = tauri::tray::TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::with_id("main-tray")
                 .menu(&menu)
                 .tooltip("纸间便利贴")
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().0.as_str() {
                     "new" => {
-                        let state: tauri::State<AppState> = app.state();
-                        let _ = create_note(app, state, Some("cream".into()), None, None, None);
+                        let _ = create_note(app, Some("cream".into()), None, None, None);
                     }
                     "show" => {
                         for win in app.webview_windows().values() {
@@ -316,7 +314,7 @@ fn main() {
                 })
                 .on_tray_icon_event(|tray, event| {
                     // 左键单击：切换显示/隐藏所有
-                    if let TrayIconEvent::Click { button: MouseButton::Left, .. } = event {
+                    if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
                         let app = tray.app_handle();
                         let wins = app.webview_windows();
                         let any_visible = wins.values().any(|w| {
@@ -341,7 +339,7 @@ fn main() {
             let has_notes = !state.notes.lock().unwrap().notes.is_empty();
 
             if has_notes {
-                let _ = restore_all_windows(app, state);
+                let _ = restore_all_windows(app);
             } else {
                 // 首次启动：创建欢迎便签
                 let welcome_html = r#"<h3>欢迎使用 纸间</h3><p>这是一张便利贴。</p><p>• 拖动<b>顶部</b>可移动窗口</p><p>• 拖动<b>右下角</b>可调整大小</p><p>• 点击<b>彩色圆点</b>切换颜色</p><p>• 点击<b>📌</b>置顶 / <b>+</b>新建 / <b>✕</b>关闭</p><p style="color:#8A8279;font-size:12px;margin-top:8px;">支持 <b>#</b> 标题 / <b>**粗体**</b> / <b>*斜体*</b> / <b>`代码`</b> / <b>&gt; 引用</b></p>"#.to_string();

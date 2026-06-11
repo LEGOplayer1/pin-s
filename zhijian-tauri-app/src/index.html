@@ -50,7 +50,7 @@ html, body {
 .note[data-color="lavender"] { background: var(--note-lavender); }
 .note[data-color="yellow"]   { background: var(--note-yellow); }
 
-/* ========== 标题栏（Tauri 拖拽区） ========== */
+/* ========== 标题栏（拖拽区） ========== */
 .note-header {
   height: 26px;
   padding: 0 6px;
@@ -62,9 +62,10 @@ html, body {
   user-select: none;
   background: rgba(74, 67, 58, 0.04);
   border-bottom: 1px solid rgba(74, 67, 58, 0.05);
+  cursor: move;
 }
 
-.color-dots { display: flex; gap: 4px; }
+.color-dots { display: flex; gap: 4px; cursor: pointer; }
 .color-dot {
   width: 12px; height: 12px;
   border-radius: 50%;
@@ -75,7 +76,7 @@ html, body {
 .color-dot:hover { transform: scale(1.2); }
 .color-dot.active { border-color: rgba(74, 67, 58, 0.6); }
 
-.window-actions { display: flex; gap: 2px; }
+.window-actions { display: flex; gap: 2px; cursor: default; }
 .btn {
   width: 22px; height: 22px;
   border: none; border-radius: 3px;
@@ -229,13 +230,14 @@ html, body {
   position: relative;
   z-index: 1;
   user-select: none;
+  cursor: move;
 }
 </style>
 </head>
 <body>
 
 <div class="note" id="note" data-color="cream">
-  <div class="note-header" data-tauri-drag-region>
+  <div class="note-header">
     <div class="color-dots" id="colorDots">
       <span class="color-dot active" data-color="cream"    style="background:#FAF6EE"></span>
       <span class="color-dot"        data-color="blue"     style="background:#E8EDF2"></span>
@@ -259,7 +261,7 @@ html, body {
     <ul class="items-list" id="itemsList" style="display:none;"></ul>
   </div>
 
-  <div class="note-footer" data-tauri-drag-region>
+  <div class="note-footer">
     <span id="modeHint">文本模式</span>
     <span id="timeStamp"></span>
   </div>
@@ -275,6 +277,72 @@ html, body {
   } catch {
     invoke = (cmd, args) => { console.log('[mock-ipc]', cmd, args); return Promise.resolve(true); };
   }
+
+  // --- 窗口拖拽 ---
+  let dragging = false;
+  let dragStartX = 0, dragStartY = 0;
+  let winStartX = 0, winStartY = 0;
+  let lastMoveTime = 0;
+  const DRAG_THROTTLE = 16; // ~60fps
+
+  async function getWindowRect() {
+    try {
+      return await invoke('cmd_get_window_rect');
+    } catch {
+      return [120, 120, 280, 280];
+    }
+  }
+
+  function onDragStart(e) {
+    if (e.target.closest('.window-actions') || e.target.closest('.color-dots')) return;
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+    e.preventDefault();
+  }
+
+  async function onDragMove(e) {
+    if (!dragging) return;
+    const now = Date.now();
+    if (now - lastMoveTime < DRAG_THROTTLE) return;
+    lastMoveTime = now;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    const newX = winStartX + dx;
+    const newY = winStartY + dy;
+    try {
+      await invoke('cmd_set_window_rect', { x: newX, y: newY });
+    } catch { /* ignore */ }
+  }
+
+  function onDragEnd() {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+    saveNote();
+  }
+
+  // 绑定标题栏和底部栏拖拽
+  const noteHeader = document.querySelector('.note-header');
+  const noteFooter = document.querySelector('.note-footer');
+
+  noteHeader.addEventListener('mousedown', async (e) => {
+    if (e.target.closest('.window-actions') || e.target.closest('.color-dots')) return;
+    const rect = await getWindowRect();
+    winStartX = rect[0];
+    winStartY = rect[1];
+    onDragStart(e);
+  });
+
+  noteFooter.addEventListener('mousedown', async (e) => {
+    const rect = await getWindowRect();
+    winStartX = rect[0];
+    winStartY = rect[1];
+    onDragStart(e);
+  });
 
   // --- UI refs ---
   const note = document.getElementById('note');
