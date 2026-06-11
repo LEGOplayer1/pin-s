@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纸间</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Playfair+Display:wght@400;500;600&family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --fg: #4A433A;
+  --fg-light: #8A8279;
+  --fg-muted: #B0A899;
+
+  --note-cream:    #FAF6EE;
+  --note-blue:     #E8EDF2;
+  --note-pink:     #F2E8E8;
+  --note-green:    #E8F0E8;
+  --note-lavender: #ECE8F0;
+  --note-yellow:   #F5F0DC;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: 'LXGW WenKai', '霞鹜文楷', serif;
+  color: var(--fg);
+  user-select: none;
+}
+
+/* ========== 便利贴主体 ========== */
+.note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 22px rgba(74, 67, 58, 0.22), 0 2px 6px rgba(74, 67, 58, 0.08);
+  transition: background-color 0.25s;
+}
+.note[data-color="cream"]    { background: var(--note-cream); }
+.note[data-color="blue"]     { background: var(--note-blue); }
+.note[data-color="pink"]     { background: var(--note-pink); }
+.note[data-color="green"]    { background: var(--note-green); }
+.note[data-color="lavender"] { background: var(--note-lavender); }
+.note[data-color="yellow"]   { background: var(--note-yellow); }
+
+/* ========== 标题栏（拖拽区） ========== */
+.note-header {
+  height: 26px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 5;
+  user-select: none;
+  background: rgba(74, 67, 58, 0.04);
+  border-bottom: 1px solid rgba(74, 67, 58, 0.05);
+  cursor: move;
+}
+
+.color-dots { display: flex; gap: 4px; cursor: pointer; }
+.color-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1.5px solid rgba(74, 67, 58, 0.18);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.color-dot:hover { transform: scale(1.2); }
+.color-dot.active { border-color: rgba(74, 67, 58, 0.6); }
+
+.window-actions { display: flex; gap: 2px; cursor: default; }
+.btn {
+  width: 22px; height: 22px;
+  border: none; border-radius: 3px;
+  background: transparent;
+  color: var(--fg-light);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { background: rgba(74, 67, 58, 0.12); color: var(--fg); }
+.btn.close:hover { background: rgba(200, 60, 60, 0.75); color: #fff; }
+.btn.mode.active { background: rgba(74, 67, 58, 0.18); color: var(--fg); font-weight: 600; }
+
+/* ========== 内容区 — 公共 ========== */
+.note-body {
+  flex: 1;
+  padding: 10px 14px;
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+}
+.note-body::-webkit-scrollbar { width: 4px; }
+.note-body::-webkit-scrollbar-track { background: transparent; }
+.note-body::-webkit-scrollbar-thumb { background: rgba(74, 67, 58, 0.18); border-radius: 2px; }
+
+/* ========== 文本模式 ========== */
+.note-body[data-mode="text"] .editor-text {
+  outline: none;
+  font-size: 14px;
+  line-height: 1.8;
+  user-select: text;
+  min-height: 100%;
+}
+.note-body[data-mode="text"] .editor-text:empty::before {
+  content: '写点什么...';
+  color: var(--fg-muted);
+  font-style: italic;
+}
+.note-body[data-mode="text"] .editor-text h1 { font-family: 'Playfair Display', serif; font-size: 20px; margin: 6px 0 2px; }
+.note-body[data-mode="text"] .editor-text h2 { font-family: 'Playfair Display', serif; font-size: 17px; margin: 6px 0 2px; }
+.note-body[data-mode="text"] .editor-text h3 { font-size: 15px; margin: 4px 0 2px; }
+.note-body[data-mode="text"] .editor-text blockquote { border-left: 3px solid var(--fg-muted); padding-left: 10px; color: var(--fg-light); font-style: italic; margin: 4px 0; }
+
+/* ========== 条目模式 ========== */
+.note-body[data-mode="items"] ul.items-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.note-body[data-mode="items"] li.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background-color 0.15s, transform 0.15s;
+}
+.note-body[data-mode="items"] li.item:hover {
+  background: rgba(74, 67, 58, 0.06);
+}
+.note-body[data-mode="items"] li.item.dragging {
+  opacity: 0.45;
+  transform: scale(0.98);
+}
+
+.handle {
+  cursor: grab;
+  color: var(--fg-muted);
+  font-size: 14px;
+  line-height: 22px;
+  user-select: none;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+.handle:hover { opacity: 1; color: var(--fg); }
+.handle:active { cursor: grabbing; }
+
+.checkbox {
+  width: 16px; height: 16px;
+  margin-top: 3px;
+  border: 1.5px solid var(--fg-muted);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.checkbox:hover { border-color: var(--fg-light); }
+.checkbox.checked {
+  background: var(--fg);
+  border-color: var(--fg);
+}
+.checkbox.checked::after {
+  content: '';
+  width: 4px; height: 8px;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.item-text {
+  flex: 1;
+  outline: none;
+  font-size: 14px;
+  line-height: 22px;
+  user-select: text;
+  word-break: break-word;
+  min-height: 22px;
+}
+.item.done .item-text {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+.item-text:empty::before {
+  content: '新条目...';
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+/* 拖拽指示线 */
+.drop-indicator {
+  height: 2px;
+  background: var(--fg-light);
+  border-radius: 2px;
+  margin: 2px 40px 2px 22px;
+  animation: dropPulse 0.3s ease;
+}
+@keyframes dropPulse {
+  from { opacity: 0; transform: scaleX(0.8); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+/* ========== 底部状态栏 ========== */
+.note-footer {
+  height: 18px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--fg-muted);
+  position: relative;
+  z-index: 1;
+  user-select: none;
+  cursor: move;
+}
+</style>
+</head>
+<body>
+
+<div class="note" id="note" data-color="cream">
+  <div class="note-header">
+    <div class="color-dots" id="colorDots">
+      <span class="color-dot active" data-color="cream"    style="background:#FAF6EE"></span>
+      <span class="color-dot"        data-color="blue"     style="background:#E8EDF2"></span>
+      <span class="color-dot"        data-color="pink"     style="background:#F2E8E8"></span>
+      <span class="color-dot"        data-color="green"    style="background:#E8F0E8"></span>
+      <span class="color-dot"        data-color="lavender" style="background:#ECE8F0"></span>
+      <span class="color-dot"        data-color="yellow"   style="background:#F5F0DC"></span>
+    </div>
+    <div class="window-actions">
+      <button class="btn mode" id="btnMode" title="切换文本 / 条目模式">☰</button>
+      <button class="btn" id="btnPin" title="置顶">📌</button>
+      <button class="btn" id="btnNew" title="新建便利贴">+</button>
+      <button class="btn close" id="btnClose" title="关闭">✕</button>
+    </div>
+  </div>
+
+  <div class="note-body" id="body" data-mode="text">
+    <!-- 文本模式 -->
+    <div class="editor-text" contenteditable="true" id="editorText" spellcheck="false"></div>
+    <!-- 条目模式（动态渲染） -->
+    <ul class="items-list" id="itemsList" style="display:none;"></ul>
+  </div>
+
+  <div class="note-footer">
+    <span id="modeHint">文本模式</span>
+    <span id="timeStamp"></span>
+  </div>
+</div>
+
+<!-- ========== 逻辑 ========== -->
+<script type="module">
+  // --- IPC helper ---
+  let invoke;
+  try {
+    const tauri = await import('@tauri-apps/api/core');
+    invoke = tauri.invoke;
+  } catch {
+    invoke = (cmd, args) => { console.log('[mock-ipc]', cmd, args); return Promise.resolve(true); };
+  }
+
+  // --- 窗口拖拽 ---
+  let dragging = false;
+  let dragStartX = 0, dragStartY = 0;
+  let winStartX = 0, winStartY = 0;
+  let lastMoveTime = 0;
+  const DRAG_THROTTLE = 16; // ~60fps
+
+  async function getWindowRect() {
+    try {
+      return await invoke('cmd_get_window_rect');
+    } catch {
+      return [120, 120, 280, 280];
+    }
+  }
+
+  function onDragStart(e) {
+    if (e.target.closest('.window-actions') || e.target.closest('.color-dots')) return;
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+    e.preventDefault();
+  }
+
+  async function onDragMove(e) {
+    if (!dragging) return;
+    const now = Date.now();
+    if (now - lastMoveTime < DRAG_THROTTLE) return;
+    lastMoveTime = now;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    const newX = winStartX + dx;
+    const newY = winStartY + dy;
+    try {
+      await invoke('cmd_set_window_rect', { x: newX, y: newY });
+    } catch { /* ignore */ }
+  }
+
+  function onDragEnd() {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+    saveNote();
+  }
+
+  // 绑定标题栏和底部栏拖拽
+  const noteHeader = document.querySelector('.note-header');
+  const noteFooter = document.querySelector('.note-footer');
+
+  noteHeader.addEventListener('mousedown', async (e) => {
+    if (e.target.closest('.window-actions') || e.target.closest('.color-dots')) return;
+    const rect = await getWindowRect();
+    winStartX = rect[0];
+    winStartY = rect[1];
+    onDragStart(e);
+  });
+
+  noteFooter.addEventListener('mousedown', async (e) => {
+    const rect = await getWindowRect();
+    winStartX = rect[0];
+    winStartY = rect[1];
+    onDragStart(e);
+  });
+
+  // --- UI refs ---
+  const note = document.getElementById('note');
+  const body = document.getElementById('body');
+  const editorText = document.getElementById('editorText');
+  const itemsList = document.getElementById('itemsList');
+  const btnMode = document.getElementById('btnMode');
+  const modeHint = document.getElementById('modeHint');
+  const timeStamp = document.getElementById('timeStamp');
+
+  // timestamp
+  const now = new Date();
+  timeStamp.textContent = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  // --- state: items ---
+  let items = []; // [{id, text, done}]
+  let currentMode = 'text';
+
+  function uid() {
+    return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  // ============================================================
+  // 启动：从后端加载本便利贴
+  // ============================================================
+  try {
+    const [mode, content, itemsStr] = await invoke('cmd_get_my_note');
+    if (mode === 'items') {
+      try {
+        const parsed = JSON.parse(itemsStr || '[]');
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          items = parsed;
+          setMode('items', content);
+        } else {
+          // items 模式但没有条目，回退为文本模式以展示 content
+          if (content) {
+            editorText.innerHTML = content;
+          }
+          setMode('text', content);
+        }
+      } catch {
+        if (content) editorText.innerHTML = content;
+        setMode('text', content);
+      }
+    } else {
+      if (content) editorText.innerHTML = content;
+      setMode('text', content);
+    }
+  } catch (e) {
+    console.warn('加载便利贴失败：', e);
+  }
+
+  // ============================================================
+  // 模式切换
+  // ============================================================
+  function setMode(mode, content) {
+    currentMode = mode;
+    body.dataset.mode = mode;
+    btnMode.classList.toggle('active', mode === 'items');
+    btnMode.textContent = mode === 'items' ? '☰' : '☰';
+    btnMode.title = mode === 'items' ? '条目模式（点此切换回文本模式）' : '文本模式（点此切换条目模式）';
+    modeHint.textContent = mode === 'items' ? '条目模式' : '文本模式';
+    if (mode === 'items') {
+      editorText.style.display = 'none';
+      itemsList.style.display = '';
+      renderItems();
+    } else {
+      editorText.style.display = '';
+      itemsList.style.display = 'none';
+      if (content) editorText.innerHTML = content;
+    }
+  }
+
+  btnMode.addEventListener('click', () => {
+    if (currentMode === 'text') {
+      // text -> items：把纯文本按换行切分
+      const raw = editorText.innerText.trim();
+      if (raw) {
+        items = raw.split(/\r?\n/).map(line => ({ id: uid(), text: line.trim(), done: false })).filter(i => i.text);
+      } else {
+        items = [{ id: uid(), text: '', done: false }];
+      }
+      setMode('items');
+    } else {
+      // items -> text：把条目用换行合并
+      const merged = items.map(i => (i.done ? '☑ ' : '☐ ') + i.text).join('\n');
+      setMode('text');
+      editorText.innerText = merged;
+    }
+    saveNote();
+  });
+
+  // ============================================================
+  // 颜色
+  // ============================================================
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.addEventListener('click', async () => {
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('active', d === dot));
+      note.dataset.color = dot.dataset.color;
+      await saveNote();
+    });
+  });
+
+  // ============================================================
+  // 窗口操作
+  // ============================================================
+  let pinned = false;
+  document.getElementById('btnClose').addEventListener('click', async () => {
+    await saveNote();
+    await invoke('cmd_close_note');
+  });
+
+  document.getElementById('btnNew').addEventListener('click', async () => {
+    await invoke('cmd_create_note', { color: note.dataset.color });
+  });
+
+  document.getElementById('btnPin').addEventListener('click', async () => {
+    pinned = !pinned;
+    document.getElementById('btnPin').textContent = pinned ? '★' : '📌';
+    await invoke('cmd_pin_note', { pinned });
+  });
+
+  // ============================================================
+  // 文本模式 — Markdown 渲染（失焦时）
+  // ============================================================
+  function parseMarkdown(raw) {
+    if (!raw || !raw.trim()) return '';
+    let html = raw
+      .replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+      .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+      .replace(/^#\s+(.+)$/gm, '<h1>$1</h1>')
+      .replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+    return html;
+  }
+
+  editorText.addEventListener('blur', () => {
+    const raw = editorText.innerText;
+    if (!raw.trim()) { saveNote(); return; }
+    // 避免对已有 HTML 的污染：若含 #/`/*/ 才重渲染，否则保持原样
+    if (/^(#|>|`|\*\*)/m.test(raw) || raw.includes('*') && raw.includes('`')) {
+      editorText.innerHTML = parseMarkdown(raw);
+    }
+    saveNote();
+  });
+
+  // Enter 在文本模式不新建条目，保持换行
+  editorText.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd+Enter 切换为条目模式
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      btnMode.click();
+    }
+  });
+
+  // ============================================================
+  // 条目模式 — 渲染 / 交互 / 拖拽
+  // ============================================================
+  function renderItems() {
+    itemsList.innerHTML = '';
+    items.forEach((it, idx) => itemsList.appendChild(buildItemEl(it, idx)));
+    // 如果没有条目，补一条空的占位
+    if (items.length === 0) {
+      items.push({ id: uid(), text: '', done: false });
+      renderItems();
+    }
+  }
+
+  function buildItemEl(it, index) {
+    const li = document.createElement('li');
+    li.className = 'item';
+    li.dataset.id = it.id;
+    li.dataset.index = String(index);
+    li.draggable = false; // 仅把手可拖
+
+    const handle = document.createElement('span');
+    handle.className = 'handle';
+    handle.textContent = '⋮⋮';
+    handle.title = '拖动调整顺序';
+    // 把手触发拖拽
+    handle.addEventListener('mousedown', () => { li.draggable = true; });
+    handle.addEventListener('mouseup', () => { li.draggable = false; });
+    handle.addEventListener('touchstart', () => { li.draggable = true; }, { passive: true });
+    handle.addEventListener('touchend', () => { li.draggable = false; });
+
+    const box = document.createElement('span');
+    box.className = 'checkbox' + (it.done ? ' checked' : '');
+    box.title = '点击勾选';
+    box.addEventListener('click', () => {
+      it.done = !it.done;
+      box.classList.toggle('checked', it.done);
+      textEl.classList.toggle('done', it.done);
+      li.classList.toggle('done', it.done);
+      saveNote();
+    });
+
+    const textEl = document.createElement('div');
+    textEl.className = 'item-text';
+    textEl.contentEditable = 'true';
+    textEl.spellcheck = false;
+    textEl.textContent = it.text;
+    if (it.done) {
+      textEl.classList.add('done');
+      li.classList.add('done');
+    }
+
+    textEl.addEventListener('input', () => {
+      it.text = textEl.textContent || '';
+    });
+    textEl.addEventListener('blur', () => {
+      it.text = textEl.textContent || '';
+      saveNote();
+    });
+
+    textEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        // 在当前之后插入新条目
+        const idx = items.findIndex(x => x.id === it.id);
+        const newItem = { id: uid(), text: '', done: false };
+        items.splice(idx + 1, 0, newItem);
+        renderItems();
+        focusItem(newItem.id);
+        saveNote();
+      } else if (e.key === 'Backspace' && (textEl.textContent || '').length === 0) {
+        e.preventDefault();
+        const idx = items.findIndex(x => x.id === it.id);
+        if (items.length > 1) {
+          items.splice(idx, 1);
+          renderItems();
+          const focusIdx = Math.max(0, idx - 1);
+          if (items[focusIdx]) focusItem(items[focusIdx].id, true);
+        }
+        saveNote();
+      } else if ((e.altKey || e.optionKey) && e.key === 'ArrowUp') {
+        e.preventDefault();
+        moveItem(it.id, -1);
+      } else if ((e.altKey || e.optionKey) && e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveItem(it.id, +1);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        box.click();
+      }
+    });
+
+    li.appendChild(handle);
+    li.appendChild(box);
+    li.appendChild(textEl);
+    attachDragHandlers(li);
+    return li;
+  }
+
+  function focusItem(id, atEnd = false) {
+    const el = itemsList.querySelector(`[data-id="${id}"] .item-text`);
+    if (!el) return;
+    el.focus();
+    if (atEnd) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
+  function moveItem(id, delta) {
+    const idx = items.findIndex(x => x.id === id);
+    const newIdx = idx + delta;
+    if (newIdx < 0 || newIdx >= items.length) return;
+    const [item] = items.splice(idx, 1);
+    items.splice(newIdx, 0, item);
+    renderItems();
+    focusItem(id);
+    saveNote();
+  }
+
+  // --- Drag & Drop (HTML5 DnD) ---
+  let dragSrcId = null;
+
+  function attachDragHandlers(li) {
+    li.addEventListener('dragstart', (e) => {
+      dragSrcId = li.dataset.id;
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragSrcId);
+    });
+
+    li.addEventListener('dragend', () => {
+      li.classList.remove('dragging');
+      li.draggable = false;
+      clearIndicators();
+      dragSrcId = null;
+    });
+
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!dragSrcId || dragSrcId === li.dataset.id) return;
+      clearIndicators();
+      const rect = li.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const insertAfter = y > rect.height / 2;
+      const indicator = document.createElement('div');
+      indicator.className = 'drop-indicator';
+      if (insertAfter) {
+        li.parentNode.insertBefore(indicator, li.nextSibling);
+      } else {
+        li.parentNode.insertBefore(indicator, li);
+      }
+    });
+
+    li.addEventListener('dragleave', () => {
+      // 只在离开整个 list 的时候清除更稳；这里不过度处理
+    });
+
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!dragSrcId || dragSrcId === li.dataset.id) { clearIndicators(); return; }
+      const targetId = li.dataset.id;
+      const rect = li.getBoundingClientRect();
+      const insertAfter = (e.clientY - rect.top) > rect.height / 2;
+      reorder(dragSrcId, targetId, insertAfter);
+      clearIndicators();
+    });
+  }
+
+  // 当拖到最后一项下面时处理
+  itemsList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (!dragSrcId) return;
+    const lastLi = itemsList.lastElementChild;
+    if (!lastLi) return;
+    const rect = lastLi.getBoundingClientRect();
+    if (e.clientY > rect.bottom) {
+      clearIndicators();
+      const indicator = document.createElement('div');
+      indicator.className = 'drop-indicator';
+      itemsList.appendChild(indicator);
+    }
+  });
+  itemsList.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (!dragSrcId) return;
+    // 若目标不是某个 li，拖到末尾
+    const children = Array.from(itemsList.querySelectorAll('li.item'));
+    if (children.length === 0) return;
+    const lastLi = children[children.length - 1];
+    const rect = lastLi.getBoundingClientRect();
+    if (e.clientY > rect.bottom) {
+      reorder(dragSrcId, lastLi.dataset.id, true);
+    }
+    clearIndicators();
+  });
+
+  function clearIndicators() {
+    itemsList.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+  }
+
+  function reorder(srcId, targetId, insertAfter) {
+    const fromIdx = items.findIndex(x => x.id === srcId);
+    if (fromIdx < 0) return;
+    const [item] = items.splice(fromIdx, 1);
+    let toIdx = items.findIndex(x => x.id === targetId);
+    if (toIdx < 0) toIdx = items.length - 1;
+    if (insertAfter) toIdx += 1;
+    items.splice(toIdx, 0, item);
+    renderItems();
+    focusItem(srcId);
+    saveNote();
+  }
+
+  // ============================================================
+  // 保存
+  // ============================================================
+  async function saveNote() {
+    try {
+      const content = currentMode === 'text' ? editorText.innerHTML : '';
+      const plainText = currentMode === 'text'
+        ? editorText.innerText
+        : items.map(i => (i.done ? '[x] ' : '[ ] ') + i.text).join('\n');
+      await invoke('cmd_save_note', {
+        content,
+        plainText,
+        color: note.dataset.color,
+        mode: currentMode,
+        itemsJson: JSON.stringify(items),
+      });
+    } catch (e) { /* silent */ }
+  }
+
+  // 失焦 + 每 10 秒保存
+  window.addEventListener('blur', saveNote);
+  setInterval(saveNote, 10000);
+
+  // ============================================================
+  // 全局快捷键
+  // ============================================================
+  document.addEventListener('keydown', async (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n' && !e.target.isContentEditable) {
+      e.preventDefault();
+      await invoke('cmd_create_note', { color: note.dataset.color });
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w' && !e.target.isContentEditable) {
+      e.preventDefault();
+      await saveNote();
+      await invoke('cmd_close_note');
+    }
+  });
+</script>
+
+</body>
+</html>

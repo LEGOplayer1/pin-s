@@ -1,0 +1,59 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Rust dependencies
+        run: |
+          cd src-tauri
+          cargo fetch
+
+      - name: Generate icons
+        run: npm run icon
+
+      - name: Build Tauri app (Release)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: '纸间便利贴 v__VERSION__'
+          releaseBody: |
+            纸间便利贴 v__VERSION__ 发布
+
+            ### 下载说明
+            - **Setup 安装包**：双击运行安装程序
+            - **Portable 便携版**：双击直接运行，无需安装
+
+            ### v0.3.0 更新内容
+            - 修复窗口无法拖动问题（JS 拖拽替代 data-tauri-drag-region）
+            - 修复无法创建新便利贴问题（智能位置计算 + 焦点确保）
+            - 消除 Release 构建黑色控制台窗口
+            - 修复 NSIS 安装路径中文问题
+          releaseDraft: false
+          prerelease: false

@@ -1,0 +1,38 @@
+[package]
+name = "zhijian"
+version = "0.2.0"
+description = "纸间 - 精致极简主义便利贴（Tauri v2 版）"
+authors = ["纸间团队"]
+edition = "2021"
+rust-version = "1.75"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# 核心 Tauri v2
+tauri = { version = "2", features = ["tray-icon"] }
+
+# 插件
+tauri-plugin-single-instance = "2"
+
+# 数据与序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# 文件与路径（直接用 std::fs，不需要插件）
+dirs = "5"
+
+# 错误处理与日志
+anyhow = "1"
+log = "0.4"
+
+# 时间戳
+chrono = { version = "0.4", features = ["serde"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
