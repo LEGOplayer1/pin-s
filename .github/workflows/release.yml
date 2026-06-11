@@ -21,18 +21,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Rust
-        run: rustup default stable
-
       - name: Install Tauri CLI
         run: npm install -g @tauri-apps/cli
 
-      - name: Prepare icons
-        run: |
-          New-Item -ItemType Directory -Force -Path src-tauri\icons | Out-Null
-          $iconUrl = "https://raw.githubusercontent.com/nicepkg/vscode-tauri-icon/main/icons/128.png"
-          Invoke-WebRequest -Uri $iconUrl -OutFile src-tauri\icons\icon.png
-          tauri icon src-tauri\icons\icon.png
+      - name: Generate icons from icon.png
+        run: tauri icon src-tauri/icons/icon.png
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
