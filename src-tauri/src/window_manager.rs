@@ -1,7 +1,6 @@
 use crate::note::{Note, NotesState};
 use std::sync::Mutex;
-use tauri::window::Window;
-use tauri::{LogicalPosition, LogicalSize, Manager, WebviewWindowBuilder};
+use tauri::{LogicalPosition, LogicalSize, Manager, WebviewWindow, WebviewWindowBuilder};
 
 // 全局便签状态（由 main.rs 初始化）
 pub struct AppState {
@@ -25,7 +24,7 @@ pub fn new_id() -> String {
 pub fn build_note_window<R: tauri::Runtime>(
     app: &impl Manager<R>,
     note: &Note,
-) -> anyhow::Result<Window<R>> {
+) -> anyhow::Result<WebviewWindow<R>> {
     let label = note.window_label();
     // 如果已经有这个 label 的窗口，直接返回
     if let Some(existing) = app.get_webview_window(&label) {
@@ -43,11 +42,11 @@ pub fn build_note_window<R: tauri::Runtime>(
     .decorations(false)
     .transparent(true)
     .resizable(true)
-    .min_inner_size(LogicalSize::new(180, 140))
-    .inner_size(LogicalSize::new(note.rect.width, note.rect.height))
-    .position(LogicalPosition::new(note.rect.x, note.rect.y))
+    .min_inner_size(LogicalSize::new(180.0, 140.0))
+    .inner_size(LogicalSize::new(note.rect.width as f64, note.rect.height as f64))
+    .position(LogicalPosition::new(note.rect.x as f64, note.rect.y as f64))
     .always_on_top(note.pinned)
-    .skip_taskbar(true) // 便利贴不显示在任务栏
+    .skip_taskbar(true)
     .focused(true)
     .build()?;
 
@@ -60,7 +59,6 @@ pub fn build_note_window<R: tauri::Runtime>(
 /// 创建一张全新的便利贴（新建窗口 + 写入 state）
 pub fn create_note<R: tauri::Runtime>(
     app: &impl Manager<R>,
-    state: tauri::State<AppState>,
     color: Option<String>,
     content: Option<String>,
     x: Option<i32>,
@@ -68,6 +66,8 @@ pub fn create_note<R: tauri::Runtime>(
 ) -> anyhow::Result<String> {
     let id = new_id();
     let color = color.unwrap_or_else(|| "cream".to_string());
+
+    let state: tauri::State<AppState> = app.state();
 
     // 如果没指定位置，给一个稍微偏移的默认位置（避免堆叠）
     let count = state.notes.lock().unwrap().notes.len() as i32;
@@ -105,10 +105,8 @@ pub fn create_note<R: tauri::Runtime>(
 }
 
 /// 从当前便签状态恢复所有窗口（启动时调用）
-pub fn restore_all_windows<R: tauri::Runtime>(
-    app: &impl Manager<R>,
-    state: tauri::State<AppState>,
-) -> anyhow::Result<()> {
+pub fn restore_all_windows<R: tauri::Runtime>(app: &impl Manager<R>) -> anyhow::Result<()> {
+    let state: tauri::State<AppState> = app.state();
     let notes = state.notes.lock().unwrap().notes.clone();
     if notes.is_empty() {
         return Ok(());
