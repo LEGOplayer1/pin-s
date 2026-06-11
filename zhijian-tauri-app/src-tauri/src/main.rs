@@ -1,13 +1,16 @@
 mod note;
 mod window_manager;
 
-use crate::note::{load_notes, save_notes, upsert_note, remove_note, Note, Rect, NotesState, Mode, Item};
-use crate::window_manager::{AppState, build_note_window, create_note, restore_all_windows, new_id};
+use crate::note::{
+    load_notes, remove_note, save_notes, upsert_note, Item, Mode, Note, NotesState, Rect,
+};
+use crate::window_manager::{
+    build_note_window, create_note, new_id, restore_all_windows, AppState,
+};
 
 use std::sync::Mutex;
-use tauri::{Manager, LogicalPosition, LogicalSize};
-use tauri::tray::{MouseButton, TrayIconEvent, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
-use tauri::Emitter;
+use tauri::tray::{MenuBuilder, MenuItemBuilder, MouseButton, PredefinedMenuItem, TrayIconEvent};
+use tauri::{LogicalPosition, LogicalSize, Manager};
 
 // ========== IPC Commands ==========
 
@@ -26,10 +29,7 @@ fn cmd_create_note(
 
 /// 关闭当前便利贴窗口（同时从 state 中删除）
 #[tauri::command]
-fn cmd_close_note(
-    window: tauri::Window,
-    state: tauri::State<AppState>,
-) -> Result<bool, String> {
+fn cmd_close_note(window: tauri::Window, state: tauri::State<AppState>) -> Result<bool, String> {
     let label = window.label();
     let id = label.trim_start_matches("note-").to_string();
     {
@@ -98,8 +98,10 @@ fn cmd_get_window_rect(window: tauri::Window) -> Result<(i32, i32, i32, i32), St
 #[tauri::command]
 fn cmd_set_window_rect(
     window: tauri::Window,
-    x: Option<i32>, y: Option<i32>,
-    width: Option<i32>, height: Option<i32>,
+    x: Option<i32>,
+    y: Option<i32>,
+    width: Option<i32>,
+    height: Option<i32>,
 ) -> Result<bool, String> {
     if let (Some(x), Some(y)) = (x, y) {
         let _ = window.set_position(LogicalPosition::new(x, y));
@@ -118,12 +120,18 @@ fn cmd_save_note(
     content: String,
     plain_text: String,
     color: String,
-    mode: Option<String>,               // "text" | "items"
-    items_json: Option<String>,         // JSON: [{id, text, done}]
+    mode: Option<String>,       // "text" | "items"
+    items_json: Option<String>, // JSON: [{id, text, done}]
 ) -> Result<bool, String> {
     let id = window.label().trim_start_matches("note-").to_string();
-    let pos = window.outer_position().map(|p| (p.x, p.y)).unwrap_or((120, 120));
-    let size = window.outer_size().map(|s| (s.width, s.height)).unwrap_or((280, 280));
+    let pos = window
+        .outer_position()
+        .map(|p| (p.x, p.y))
+        .unwrap_or((120, 120));
+    let size = window
+        .outer_size()
+        .map(|s| (s.width, s.height))
+        .unwrap_or((280, 280));
 
     // 解析 mode
     let parsed_mode = match mode.as_deref() {
@@ -148,7 +156,12 @@ fn cmd_save_note(
             n.color = color;
             n.mode = parsed_mode.clone();
             n.items = parsed_items.clone();
-            n.rect = Rect { x: pos.0, y: pos.1, width: size.0 as i32, height: size.1 as i32 };
+            n.rect = Rect {
+                x: pos.0,
+                y: pos.1,
+                width: size.0 as i32,
+                height: size.1 as i32,
+            };
             n.updated_at = chrono::Utc::now().timestamp_millis();
         } else {
             guard.notes.push(Note {
@@ -160,7 +173,12 @@ fn cmd_save_note(
                 items: parsed_items.clone(),
                 pinned: false,
                 click_through: false,
-                rect: Rect { x: pos.0, y: pos.1, width: size.0 as i32, height: size.1 as i32 },
+                rect: Rect {
+                    x: pos.0,
+                    y: pos.1,
+                    width: size.0 as i32,
+                    height: size.1 as i32,
+                },
                 reminder: None,
                 created_at: chrono::Utc::now().timestamp_millis(),
                 updated_at: chrono::Utc::now().timestamp_millis(),
@@ -223,18 +241,9 @@ fn cmd_quit_app(app: tauri::AppHandle) -> Result<bool, String> {
     Ok(true)
 }
 
-/// 系统通知（可选）
-#[tauri::command]
-fn cmd_notify(title: String, body: String) -> Result<bool, String> {
-    let _ = tauri::Notification::new(&title).body(&body).notify();
-    Ok(true)
-}
-
 // ========== 主入口 ==========
 
 fn main() {
-    env_logger::init();
-
     let initial_state = load_notes();
 
     tauri::Builder::default()
@@ -260,7 +269,6 @@ fn main() {
             cmd_show_all,
             cmd_hide_all,
             cmd_quit_app,
-            cmd_notify,
         ])
         .setup(|app| {
             // ========== 系统托盘 ==========

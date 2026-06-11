@@ -20,7 +20,11 @@ pub struct Item {
 
 impl Item {
     pub fn new(id: String, text: String) -> Self {
-        Self { id, text, done: false }
+        Self {
+            id,
+            text,
+            done: false,
+        }
     }
 }
 
@@ -33,22 +37,24 @@ pub enum Mode {
 }
 
 impl Default for Mode {
-    fn default() -> Self { Mode::Text }
+    fn default() -> Self {
+        Mode::Text
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Note {
     pub id: String,
-    pub color: String,      // cream | blue | pink | green | lavender | yellow
+    pub color: String, // cream | blue | pink | green | lavender | yellow
 
     #[serde(default)]
     pub mode: Mode,
     #[serde(default)]
-    pub content: String,    // HTML（Text 模式）
+    pub content: String, // HTML（Text 模式）
     #[serde(default)]
     pub plain_text: String, // 纯文本
     #[serde(default)]
-    pub items: Vec<Item>,   // 条目模式下的条目列表
+    pub items: Vec<Item>, // 条目模式下的条目列表
 
     #[serde(default)]
     pub pinned: bool,
@@ -72,7 +78,12 @@ impl Note {
             items: Vec::new(),
             pinned: false,
             click_through: false,
-            rect: Rect { x, y, width: w, height: h },
+            rect: Rect {
+                x,
+                y,
+                width: w,
+                height: h,
+            },
             reminder: None,
             created_at: now,
             updated_at: now,

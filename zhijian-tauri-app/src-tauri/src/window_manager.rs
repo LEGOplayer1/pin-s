@@ -1,7 +1,7 @@
 use crate::note::{Note, NotesState};
 use std::sync::Mutex;
-use tauri::{Manager, LogicalSize, LogicalPosition, WebviewWindowBuilder};
 use tauri::window::Window;
+use tauri::{LogicalPosition, LogicalSize, Manager, WebviewWindowBuilder};
 
 // 全局便签状态（由 main.rs 初始化）
 pub struct AppState {
@@ -14,7 +14,10 @@ const DEFAULT_H: i32 = 280;
 /// 生成一个简单的唯一 id
 pub fn new_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let ms = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
     format!("n{:x}", ms)
 }
 
@@ -31,18 +34,22 @@ pub fn build_note_window<R: tauri::Runtime>(
         return Ok(existing);
     }
 
-    let win = WebviewWindowBuilder::new(app, label.clone(), tauri::WebviewUrl::App("index.html".into()))
-        .title("纸间")
-        .decorations(false)
-        .transparent(true)
-        .resizable(true)
-        .min_inner_size(LogicalSize::new(180, 140))
-        .inner_size(LogicalSize::new(note.rect.width, note.rect.height))
-        .position(LogicalPosition::new(note.rect.x, note.rect.y))
-        .always_on_top(note.pinned)
-        .skip_taskbar(true)   // 便利贴不显示在任务栏
-        .focused(true)
-        .build()?;
+    let win = WebviewWindowBuilder::new(
+        app,
+        label.clone(),
+        tauri::WebviewUrl::App("index.html".into()),
+    )
+    .title("纸间")
+    .decorations(false)
+    .transparent(true)
+    .resizable(true)
+    .min_inner_size(LogicalSize::new(180, 140))
+    .inner_size(LogicalSize::new(note.rect.width, note.rect.height))
+    .position(LogicalPosition::new(note.rect.x, note.rect.y))
+    .always_on_top(note.pinned)
+    .skip_taskbar(true) // 便利贴不显示在任务栏
+    .focused(true)
+    .build()?;
 
     Ok(win)
 }
