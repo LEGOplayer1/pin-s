@@ -9,6 +9,7 @@ pub struct AppState {
 
 const DEFAULT_W: i32 = 280;
 const DEFAULT_H: i32 = 280;
+const OFFSET: i32 = 40; // 新窗口相对偏移量
 
 /// 生成一个简单的唯一 id
 pub fn new_id() -> String {
@@ -50,11 +51,47 @@ pub fn build_note_window<R: tauri::Runtime>(
     .focused(true)
     .build()?;
 
+    // 确保新窗口获得焦点
+    let _ = win.set_focus();
+
     Ok(win)
 }
 
 /// 为指定窗口把自己的 note id 暴露出去（前端通过 invoke("get_my_note_id") 读取）
 /// 这里我们简单地约定：窗口 label 就是 "note-{id}"，前端解析即可。
+
+/// 获取当前焦点窗口的位置，用作新建便利贴的基准位置
+fn get_focused_window_pos<R: tauri::Runtime>(app: &impl Manager<R>) -> Option<(i32, i32)> {
+    for win in app.webview_windows().values() {
+        if win.is_focused().unwrap_or(false) {
+            if let Ok(pos) = win.outer_position() {
+                return Some((pos.x, pos.y));
+            }
+        }
+    }
+    None
+}
+
+/// 计算新窗口位置：基于焦点窗口偏移，带屏幕边界检测
+fn calc_new_position<R: tauri::Runtime>(app: &impl Manager<R>) -> (i32, i32) {
+    // 尝试基于焦点窗口偏移
+    if let Some((fx, fy)) = get_focused_window_pos(app) {
+        let nx = fx + OFFSET;
+        let ny = fy + OFFSET;
+        // 简单边界检测：若超出常见屏幕范围，回退到焦点窗口位置
+        if nx < 0 || ny < 0 || nx > 3000 || ny > 2000 {
+            return (fx, fy);
+        }
+        return (nx, ny);
+    }
+
+    // 无焦点窗口时，基于已有便签数量偏移
+    let state: tauri::State<AppState> = app.state();
+    let count = state.notes.lock().unwrap().notes.len() as i32;
+    let x = 120 + count * OFFSET;
+    let y = 120 + count * OFFSET;
+    (x, y)
+}
 
 /// 创建一张全新的便利贴（新建窗口 + 写入 state）
 pub fn create_note<R: tauri::Runtime>(
@@ -67,18 +104,18 @@ pub fn create_note<R: tauri::Runtime>(
     let id = new_id();
     let color = color.unwrap_or_else(|| "cream".to_string());
 
-    let state: tauri::State<AppState> = app.state();
-
-    // 如果没指定位置，给一个稍微偏移的默认位置（避免堆叠）
-    let count = state.notes.lock().unwrap().notes.len() as i32;
-    let default_x = 120 + count * 28;
-    let default_y = 120 + count * 28;
+    // 计算位置：优先使用传入坐标，否则智能计算
+    let (calc_x, calc_y) = if x.is_some() && y.is_some() {
+        (x.unwrap(), y.unwrap())
+    } else {
+        calc_new_position(app)
+    };
 
     let mut note = Note::new(
         id.clone(),
         &color,
-        x.unwrap_or(default_x),
-        y.unwrap_or(default_y),
+        calc_x,
+        calc_y,
         DEFAULT_W,
         DEFAULT_H,
     );
@@ -94,7 +131,12 @@ pub fn create_note<R: tauri::Runtime>(
         let _ = win.set_ignore_cursor_events(true);
     }
 
+    // 确保新窗口可见并获得焦点
+    let _ = win.show();
+    let _ = win.set_focus();
+
     // 保存到全局状态并落盘
+    let state: tauri::State<AppState> = app.state();
     {
         let mut guard = state.notes.lock().unwrap();
         super::note::upsert_note(&mut guard, note);
