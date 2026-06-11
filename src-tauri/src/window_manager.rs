@@ -1,6 +1,6 @@
 use crate::note::{Note, NotesState};
 use std::sync::Mutex;
-use tauri::{LogicalPosition, LogicalSize, Manager, WebviewWindow, WebviewWindowBuilder};
+use tauri::{Manager, WebviewWindow, WebviewWindowBuilder};
 
 // 全局便签状态（由 main.rs 初始化）
 pub struct AppState {
@@ -42,9 +42,9 @@ pub fn build_note_window<R: tauri::Runtime>(
     .decorations(false)
     .transparent(true)
     .resizable(true)
-    .min_inner_size(LogicalSize::new(180.0, 140.0))
-    .inner_size(LogicalSize::new(note.rect.width as f64, note.rect.height as f64))
-    .position(LogicalPosition::new(note.rect.x as f64, note.rect.y as f64))
+    .min_inner_size(180.0, 140.0)
+    .inner_size(note.rect.width as f64, note.rect.height as f64)
+    .position(note.rect.x as f64, note.rect.y as f64)
     .always_on_top(note.pinned)
     .skip_taskbar(true)
     .focused(true)

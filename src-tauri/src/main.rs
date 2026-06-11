@@ -1,15 +1,14 @@
 mod note;
 mod window_manager;
 
-use crate::note::{
-    load_notes, remove_note, save_notes, upsert_note, Item, Mode, Note, NotesState, Rect,
-};
+use crate::note::{load_notes, remove_note, save_notes, upsert_note, Item, Mode, Note, Rect};
 use crate::window_manager::{
     build_note_window, create_note, new_id, restore_all_windows, AppState,
 };
 
 use std::sync::Mutex;
-use tauri::tray::{MenuBuilder, MenuItemBuilder, MouseButton, MouseButtonState, PredefinedMenuItem, TrayIconEvent};
+use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::Manager;
 
 // ========== IPC Commands ==========
@@ -103,10 +102,10 @@ fn cmd_set_window_rect(
     height: Option<i32>,
 ) -> Result<bool, String> {
     if let (Some(x), Some(y)) = (x, y) {
-        let _ = window.set_position(LogicalPosition::new(x, y));
+        let _ = window.set_position(x as f64, y as f64);
     }
     if let (Some(w), Some(h)) = (width, height) {
-        let _ = window.set_size(LogicalSize::new(w, h));
+        let _ = window.set_size(w as f64, h as f64);
     }
     Ok(true)
 }
@@ -286,7 +285,7 @@ fn main() {
                 .item(&quit_item)
                 .build()?;
 
-            let _tray = tauri::tray::TrayIconBuilder::with_id("main-tray")
+            let _tray = TrayIconBuilder::with_id("main-tray")
                 .menu(&menu)
                 .tooltip("纸间便利贴")
                 .show_menu_on_left_click(false)
